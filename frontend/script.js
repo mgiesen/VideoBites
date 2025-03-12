@@ -176,18 +176,30 @@ function addSegment(isFirstElement = false)
                 ${deleteIcon}
             </div>
             <div class="segment-controls">
-                <div class="time-input mb-2">
-                    <div class="label-container">
-                        <label for="start-time-${segmentIndex}" class="time-label">Startzeit</label>
-                        <span class="time-display start-time-display">00:00</span>
+                <div class="time-input mb-3">
+                    <label for="start-time-${segmentIndex}" class="time-label mb-1">Startzeit</label>
+                    <div class="d-flex align-items-center mb-1">
+                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn me-2" data-action="decrease-start">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="text" class="form-control time-text-input start-time-text" style="text-align: center;" placeholder="00:00" value="00:00">
+                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn ms-2" data-action="increase-start">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
                     <input type="range" class="form-range start-time" id="start-time-${segmentIndex}" 
                         min="0" max="${maxDuration}" step="1" value="0">
                 </div>
                 <div class="time-input">
-                    <div class="label-container">
-                        <label for="end-time-${segmentIndex}" class="time-label">Endzeit</label>
-                        <span class="time-display end-time-display">${formatTime(maxDuration > 10 ? 10 : maxDuration)}</span>
+                    <label for="end-time-${segmentIndex}" class="time-label mb-1">Endzeit</label>
+                    <div class="d-flex align-items-center mb-1">
+                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn me-2" data-action="decrease-end">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="text" class="form-control time-text-input end-time-text" style="text-align: center;" placeholder="00:10" value="${formatTime(maxDuration > 10 ? 10 : maxDuration)}">
+                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn ms-2" data-action="increase-end">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
                     <input type="range" class="form-range end-time" id="end-time-${segmentIndex}" 
                         min="0" max="${maxDuration}" step="1" value="${maxDuration > 10 ? 10 : maxDuration}">
@@ -211,15 +223,62 @@ function addSegment(isFirstElement = false)
 
     const startTimeInput = newSegment.querySelector('.start-time');
     const endTimeInput = newSegment.querySelector('.end-time');
-    const startTimeDisplay = newSegment.querySelector('.start-time-display');
-    const endTimeDisplay = newSegment.querySelector('.end-time-display');
+    const startTimeTextInput = newSegment.querySelector('.start-time-text');
+    const endTimeTextInput = newSegment.querySelector('.end-time-text');
     const durationSpan = newSegment.querySelector('.segment-duration');
 
-    startTimeDisplay.textContent = formatTime(parseInt(startTimeInput.value));
-    endTimeDisplay.textContent = formatTime(parseInt(endTimeInput.value));
+    const decreaseStartBtn = newSegment.querySelector('[data-action="decrease-start"]');
+    const increaseStartBtn = newSegment.querySelector('[data-action="increase-start"]');
+    const decreaseEndBtn = newSegment.querySelector('[data-action="decrease-end"]');
+    const increaseEndBtn = newSegment.querySelector('[data-action="increase-end"]');
+
     updateSegmentDuration(parseInt(startTimeInput.value), parseInt(endTimeInput.value), durationSpan);
 
-    // Improved startTime slider handler - pushes endTime when needed
+    // Function to parse time input (format: HH:MM:SS or MM:SS)
+    function parseTimeInput(timeStr)
+    {
+        const parts = timeStr.split(':').map(part => parseInt(part) || 0);
+        if (parts.length === 3)
+        {
+            // HH:MM:SS format
+            return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        } else if (parts.length === 2)
+        {
+            // MM:SS format
+            return parts[0] * 60 + parts[1];
+        }
+        return 0;
+    }
+
+    // Function to update all UI elements with new time values
+    function updateTimeUI(start, end)
+    {
+        // Update slider values
+        startTimeInput.value = start;
+        endTimeInput.value = end;
+
+        // Update text input values
+        startTimeTextInput.value = formatTime(start);
+        endTimeTextInput.value = formatTime(end);
+
+        // Update duration display
+        updateSegmentDuration(start, end, durationSpan);
+    }
+
+    // Function to handle time changes with validation
+    function handleTimeChange(newStart, newEnd)
+    {
+        const maxDuration = parseInt(endTimeInput.max);
+        const minDuration = 1;
+
+        // Validate boundaries
+        newStart = Math.max(0, Math.min(newStart, maxDuration - minDuration));
+        newEnd = Math.max(newStart + minDuration, Math.min(newEnd, maxDuration));
+
+        updateTimeUI(newStart, newEnd);
+    }
+
+    // Start time slider handler
     startTimeInput.addEventListener('input', () =>
     {
         let start = parseInt(startTimeInput.value);
@@ -232,15 +291,12 @@ function addSegment(isFirstElement = false)
         {
             // Push the end time forward
             end = Math.min(start + minDuration, maxDuration);
-            endTimeInput.value = end;
-            endTimeDisplay.textContent = formatTime(end);
         }
 
-        startTimeDisplay.textContent = formatTime(start);
-        updateSegmentDuration(start, end, durationSpan);
+        updateTimeUI(start, end);
     });
 
-    // Improved endTime slider handler - pushes startTime when needed
+    // End time slider handler
     endTimeInput.addEventListener('input', () =>
     {
         let start = parseInt(startTimeInput.value);
@@ -251,7 +307,6 @@ function addSegment(isFirstElement = false)
         if (end < minDuration)
         {
             end = minDuration;
-            endTimeInput.value = end;
         }
 
         // If end time is being pulled below start time + minDuration
@@ -259,12 +314,53 @@ function addSegment(isFirstElement = false)
         {
             // Pull the start time backward
             start = Math.max(end - minDuration, 0);
-            startTimeInput.value = start;
-            startTimeDisplay.textContent = formatTime(start);
         }
 
-        endTimeDisplay.textContent = formatTime(end);
-        updateSegmentDuration(start, end, durationSpan);
+        updateTimeUI(start, end);
+    });
+
+    // Text input handlers
+    startTimeTextInput.addEventListener('change', () =>
+    {
+        const inputTime = parseTimeInput(startTimeTextInput.value);
+        const currentEnd = parseInt(endTimeInput.value);
+        handleTimeChange(inputTime, currentEnd);
+    });
+
+    endTimeTextInput.addEventListener('change', () =>
+    {
+        const currentStart = parseInt(startTimeInput.value);
+        const inputTime = parseTimeInput(endTimeTextInput.value);
+        handleTimeChange(currentStart, inputTime);
+    });
+
+    // Stepper button handlers
+    decreaseStartBtn.addEventListener('click', () =>
+    {
+        const start = parseInt(startTimeInput.value) - 1;
+        const end = parseInt(endTimeInput.value);
+        handleTimeChange(start, end);
+    });
+
+    increaseStartBtn.addEventListener('click', () =>
+    {
+        const start = parseInt(startTimeInput.value) + 1;
+        const end = parseInt(endTimeInput.value);
+        handleTimeChange(start, end);
+    });
+
+    decreaseEndBtn.addEventListener('click', () =>
+    {
+        const start = parseInt(startTimeInput.value);
+        const end = parseInt(endTimeInput.value) - 1;
+        handleTimeChange(start, end);
+    });
+
+    increaseEndBtn.addEventListener('click', () =>
+    {
+        const start = parseInt(startTimeInput.value);
+        const end = parseInt(endTimeInput.value) + 1;
+        handleTimeChange(start, end);
     });
 
     updateExtractButtonState();
@@ -289,8 +385,8 @@ function updateSegmentTimeConstraints(maxDuration)
     {
         const startTimeInput = segment.querySelector('.start-time');
         const endTimeInput = segment.querySelector('.end-time');
-        const startTimeDisplay = segment.querySelector('.start-time-display');
-        const endTimeDisplay = segment.querySelector('.end-time-display');
+        const startTimeTextInput = segment.querySelector('.start-time-text');
+        const endTimeTextInput = segment.querySelector('.end-time-text');
         const durationSpan = segment.querySelector('.segment-duration');
 
         startTimeInput.max = maxDuration - 1;
@@ -304,8 +400,8 @@ function updateSegmentTimeConstraints(maxDuration)
 
         startTimeInput.value = start;
         endTimeInput.value = end;
-        startTimeDisplay.textContent = formatTime(start);
-        endTimeDisplay.textContent = formatTime(end);
+        startTimeTextInput.value = formatTime(start);
+        endTimeTextInput.value = formatTime(end);
         updateSegmentDuration(start, end, durationSpan);
     });
 }
@@ -398,7 +494,7 @@ function enterExtractionMode()
     extractBtnContainer.style.display = 'none';
     qualitySelect.disabled = true;
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'none');
-    document.querySelectorAll('.start-time, .end-time').forEach(input => input.disabled = true);
+    document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = true);
 }
 
 function exitExtractionMode()
@@ -409,7 +505,7 @@ function exitExtractionMode()
     extractBtnContainer.style.display = 'block';
     qualitySelect.disabled = false;
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'block');
-    document.querySelectorAll('.start-time, .end-time').forEach(input => input.disabled = false);
+    document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = false);
 }
 
 function updateSegmentsToLoadingState()
