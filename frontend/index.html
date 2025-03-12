@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="de">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>VideoBites</title>
+		<!-- Bootstrap CSS -->
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+		<!-- Font Awesome -->
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+		<!-- Custom CSS -->
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+	<body>
+		<div class="container">
+			<header class="my-5 text-center">
+				<h1 class="display-4">Video<span class="text-primary">Bites</span></h1>
+				<p class="lead">Extrahiere spezifische Ausschnitte aus YouTube-Videos herunter</p>
+			</header>
+
+			<main>
+				<!-- URL Input Section -->
+				<div class="card mb-4 shadow-sm" id="urlCard">
+					<div class="card-body">
+						<h2 class="card-title h5 mb-3">Video-URL eingeben</h2>
+						<div class="input-group mb-3">
+							<input type="text" id="videoUrl" class="form-control" placeholder="YouTube-URL einfügen..." aria-label="YouTube-URL" />
+							<button class="btn btn-primary" type="button" id="checkUrlBtn"><i class="fas fa-check me-1"></i> Prüfen</button>
+						</div>
+					</div>
+				</div>
+
+				<!-- Video Info Section (Hidden initially) -->
+				<div class="card mb-4 shadow-sm" id="videoInfoCard" style="display: none">
+					<div class="card-body">
+						<h2 class="card-title h5 mb-3">Video-Informationen</h2>
+						<div class="row">
+							<div class="col-md-4 mb-3 mb-md-0">
+								<a id="videoYoutubeLink" href="#" target="_blank">
+									<img id="videoThumbnail" src="" alt="Video Thumbnail" class="img-fluid rounded" />
+								</a>
+							</div>
+							<div class="col-md-8">
+								<h3 id="videoTitle" class="h6 fw-bold"></h3>
+								<p class="mb-2"><i class="fas fa-user me-2"></i><span id="videoUploader"></span></p>
+								<p class="mb-2"><i class="fas fa-calendar me-2"></i><span id="videoUploadDate"></span></p>
+								<p class="mb-2"><i class="fas fa-clock me-2"></i>Dauer: <span id="videoDuration"></span></p>
+								<p class="mb-0"><i class="fas fa-eye me-2"></i><span id="videoViews"></span> Aufrufe</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Video Download Options (Hidden initially) -->
+				<div class="card mb-4 shadow-sm" id="qualityCard" style="display: none">
+					<div class="card-body">
+						<h2 class="card-title h5 mb-3">Video Download</h2>
+						<div class="mb-3">
+							<label for="qualitySelect" class="form-label">Videoqualität auswählen:</label>
+							<select class="form-select" id="qualitySelect">
+								<option value="144">144p</option>
+								<option value="240">240p</option>
+								<option value="360">360p</option>
+								<option value="480">480p</option>
+								<option value="720" selected>720p (Standard)</option>
+								<option value="1080">1080p (Full HD)</option>
+								<option value="1440">1440p (2K)</option>
+								<option value="2160">2160p (4K)</option>
+								<option value="audio">Nur Audio</option>
+							</select>
+						</div>
+					</div>
+				</div>
+
+				<!-- Segments Section (Hidden initially) -->
+				<div class="card mb-4 shadow-sm" id="segmentsCard" style="display: none">
+					<div class="card-body">
+						<div class="d-flex justify-content-between align-items-center mb-3" id="segmentsHeader">
+							<h2 class="card-title h5 mb-0">Segmente definieren</h2>
+							<button class="btn btn-sm btn-outline-primary" id="addSegmentBtn"><i class="fas fa-plus me-1"></i> Segment hinzufügen</button>
+						</div>
+
+						<div id="segmentsContainer">
+							<!-- Segments will be added here dynamically -->
+						</div>
+					</div>
+					<div class="card-footer" id="extractBtnContainer">
+						<button class="btn btn-primary w-100" id="extractBtn" disabled><i class="fas fa-download me-1"></i> Segmente extrahieren</button>
+					</div>
+				</div>
+
+				<!-- New Extraction Button (Hidden initially) -->
+				<div class="text-center mb-4" id="newExtractionContainer" style="display: none">
+					<button class="btn btn-lg btn-outline-primary" id="newExtractionBtn"><i class="fas fa-redo me-1"></i> Neue Extraktion starten</button>
+				</div>
+
+				<!-- Video Player Modal -->
+				<div class="modal fade" id="videoPlayerModal" tabindex="-1" aria-labelledby="videoPlayerModalLabel" aria-hidden="true">
+					<div class="modal-dialog modal-lg modal-dialog-centered">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="videoPlayerModalLabel">Video-Segment ansehen</h5>
+								<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+							</div>
+							<div class="modal-body">
+								<video id="videoPlayer" class="w-100" controls></video>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+								<a id="videoDownloadBtn" href="#" class="btn btn-primary" download> <i class="fas fa-download me-1"></i> Herunterladen </a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</main>
+
+			<footer class="text-center my-5">
+				<div class="container">
+					<div class="py-3 border-top border-light">
+						<p class="mb-1">
+							<a href="https://github.com/mgiesen/VideoBites" class="text-decoration-none" target="_blank"> <i class="fab fa-github me-2"></i>VideoBites </a>
+						</p>
+						<p class="small text-muted">Bitte beachte die Nutzungs- und Urheberrechte für alle heruntergeladenen Inhalte</p>
+					</div>
+				</div>
+			</footer>
+		</div>
+
+		<!-- Bootstrap JS -->
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+		<!-- Custom JS -->
+		<script src="script.js"></script>
+	</body>
+</html>

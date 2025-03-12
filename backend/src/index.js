@@ -6,9 +6,21 @@ const routes = require('./routes');
 const app = express();
 const PORT = 3000;
 
+// CORS-Konfiguration
+const corsOptions = {
+  origin: '*', // In production, replace with your specific domains
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition'],
+  credentials: true
+};
+
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors(corsOptions));
+
+// Static files for streamed videos
+app.use('/data', express.static(process.env.DOWNLOAD_DIR || '/app/data'));
 
 // Routen einbinden
 app.use('/api', routes);
@@ -40,4 +52,5 @@ app.listen(PORT, () =>
   console.log('- POST /api/extract - Video-Segmente extrahieren');
   console.log('- GET /api/status/:jobId - Job-Status abfragen');
   console.log('- GET /api/download/:jobId/:segmentIndex - Video-Segment herunterladen');
+  console.log('- GET /api/stream/:jobId/:segmentIndex - Video-Segment streamen');
 });

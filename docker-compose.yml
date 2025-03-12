@@ -12,6 +12,19 @@ services:
     environment:
       - DOWNLOAD_DIR=/app/data
 
+  frontend:
+    image: nginx:alpine
+    container_name: videobites-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+      - ./data:/usr/share/nginx/html/data:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+
 volumes:
   data:
     driver: local

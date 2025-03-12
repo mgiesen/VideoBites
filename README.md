@@ -1,6 +1,6 @@
 # VideoBites
 
-Ein Docker-basierter API-Dienst zum Extrahieren und Herunterladen bestimmter Zeitabschnitte aus YouTube-Videos.
+Ein Docker-basierter Dienst zum Extrahieren und Herunterladen bestimmter Zeitabschnitte aus YouTube-Videos mit benutzerfreundlicher Weboberfläche.
 
 Die Anwendung ist besonders nützlich für:
 
@@ -8,6 +8,16 @@ Die Anwendung ist besonders nützlich für:
 - Content-Creator, die auf bestimmte Szenen verweisen möchten.
 - Bildungseinrichtungen, die relevante Inhalte für Lehrzwecke extrahieren.
 - Archivare und Analysten, die Videoausschnitte für Dokumentationen oder Studien speichern.
+
+## Funktionen
+
+- **Benutzerfreundliche Weboberfläche** - Einfache Bedienung ohne Programmierkenntnisse
+- **Flexible Segmentauswahl** - Extrahiere beliebig viele Zeitabschnitte aus einem Video
+- **Vorschau-Funktion** - Anzeige der extrahierten Segmente direkt im Browser
+- **Qualitätsauswahl** - Wähle zwischen verschiedenen Videoqualitäten (144p bis 4K)
+- **Audio-Modus** - Möglichkeit, nur den Audiokanal zu extrahieren
+- **Download-Option** - Speichere die Ausschnitte auf deinem Gerät
+- **Vollständige API** - Alle Funktionen sind auch programmatisch über die API zugänglich
 
 ## Rechtliche Hinweise
 
@@ -27,6 +37,20 @@ Die Nutzung von VideoBites muss im Einklang mit den Urheber- und Nutzungsrechten
    ```bash
    docker-compose up -d
    ```
+
+3. Öffne die Weboberfläche in deinem Browser:
+
+   ```
+   http://localhost
+   ```
+
+## Bedienung der Weboberfläche
+
+1. **Video auswählen**: Gib eine YouTube-URL ein und klicke auf "Prüfen".
+2. **Qualität wählen**: Wähle die gewünschte Videoqualität aus dem Dropdown-Menü.
+3. **Segmente definieren**: Füge beliebig viele Zeitabschnitte hinzu, indem du Start- und Endzeiten festlegst.
+4. **Extrahieren**: Klicke auf "Segmente extrahieren", um den Prozess zu starten.
+5. **Vorschau & Download**: Wenn die Extraktion abgeschlossen ist, kannst du die Segmente ansehen und herunterladen.
 
 ## API Dokumentation
 
@@ -117,85 +141,19 @@ Content-Type: application/json
 - "2160" - 2160p (4K)
 - "audio" - Nur Audio
 
-**Response**
+## Architektur
 
-```json
-{
-	"jobId": "9a8e7c6e-6ab3-407d-85da-c173debcf786",
-	"status": "pending"
-}
-```
+VideoBites besteht aus zwei Hauptkomponenten:
 
-### 4. Job-Status abfragen
+1. **Backend**: Node.js-Server mit Express, der die API-Endpoints bereitstellt und die Videobearbeitung übernimmt.
+2. **Frontend**: Benutzerfreundliche Weboberfläche, die von einem Nginx-Server bereitgestellt wird.
 
-Prüft den Status eines Extraktions-Jobs.
+Beide Komponenten werden in Docker-Containern ausgeführt und über Docker Compose orchestriert.
 
-**Request**
-
-```http
-GET http://localhost:3000/api/status/9a8e7c6e-6ab3-407d-85da-c173debcf786
-```
-
-**Response während Bearbeitung**
-
-```json
-{
-	"id": "9a8e7c6e-6ab3-407d-85da-c173debcf786",
-	"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-	"segments": [
-		{ "start": 10, "end": 20 },
-		{ "start": 30, "end": 40 }
-	],
-	"status": "pending",
-	"result": null,
-	"error": null,
-	"createdAt": "2025-03-12T08:04:01.715Z"
-}
-```
-
-**Response nach Abschluss**
-
-```json
-{
-	"id": "9a8e7c6e-6ab3-407d-85da-c173debcf786",
-	"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-	"segments": [
-		{ "start": 10, "end": 20 },
-		{ "start": 30, "end": 40 }
-	],
-	"status": "completed",
-	"result": [
-		{
-			"segment": { "start": 10, "end": 20 },
-			"filePath": "/app/data/cc1f55d1-5589-4be7-be87-ef3980429e6e_segment_0.mp4"
-		},
-		{
-			"segment": { "start": 30, "end": 40 },
-			"filePath": "/app/data/cc1f55d1-5589-4be7-be87-ef3980429e6e_segment_1.mp4"
-		}
-	],
-	"error": null,
-	"createdAt": "2025-03-12T08:04:01.715Z",
-	"completedAt": "2025-03-12T08:04:13.333Z"
-}
-```
-
-### 5. Video-Segment herunterladen
-
-Lädt ein extrahiertes Video-Segment herunter.
-
-**Request**
-
-```http
-GET http://localhost:3000/api/download/9a8e7c6e-6ab3-407d-85da-c173debcf786/0
-```
-
-**Response**
-Der Server sendet die Video-Datei als Download.
-
-## Externe Abhängigkeiten
+## Systemanforderungen
 
 - Docker und Docker Compose
+- Internetverbindung für den Zugriff auf YouTube
 
 ## Eingesetzte Tools
 
@@ -203,3 +161,13 @@ VideoBites läuft in einem Docker-Container und verwendet folgende Systemwerkzeu
 
 - **yt-dlp** – Zum Herunterladen und Verarbeiten von YouTube-Videos.
 - **ffmpeg** – Zur Bearbeitung und Extraktion von Videoabschnitten.
+- **nginx** – Bereitstellung der Weboberfläche und API-Proxy.
+
+## Fehlerbehebung
+
+- **Extraktionsfehler**: Stelle sicher, dass das Video nicht altersbeschränkt oder regional gesperrt ist.
+- **Lange Ladezeiten**: Die Verarbeitung großer Videos oder vieler Segmente kann einige Zeit in Anspruch nehmen.
+
+## Beitragen
+
+Beiträge zum Projekt sind willkommen! Bitte erstelle einen Fork des Repositories und reiche Pull Requests ein.

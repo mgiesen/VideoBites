@@ -1,0 +1,268 @@
+/* Base Styles */
+:root {
+	--primary-color: #3498db;
+	--secondary-color: #2c3e50;
+	--accent-color: #1abc9c;
+	--light-gray: #f8f9fa;
+	--medium-gray: #e9ecef;
+	--dark-gray: #6c757d;
+	--danger-color: #e74c3c;
+	--success-color: #2ecc71;
+	--warning-color: #f39c12;
+	--border-radius: 6px;
+	--box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	--transition: all 0.3s ease;
+}
+
+body {
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	background-color: #f9f9f9;
+	color: #333;
+	line-height: 1.6;
+}
+
+/* Header Styles */
+header h1 {
+	font-weight: 700;
+	letter-spacing: -1px;
+}
+
+header .text-primary {
+	color: var(--primary-color) !important;
+}
+
+/* Card Styles */
+.card {
+	border: none;
+	border-radius: var(--border-radius);
+	box-shadow: var(--box-shadow);
+	transition: var(--transition);
+	overflow: hidden;
+}
+
+.card:hover {
+	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-title {
+	color: var(--secondary-color);
+	font-weight: 600;
+}
+
+.card-footer {
+	background-color: white;
+	border-top: 1px solid var(--medium-gray);
+}
+
+/* Button Styles */
+.btn {
+	border-radius: var(--border-radius);
+	font-weight: 500;
+	transition: var(--transition);
+}
+
+.btn-primary {
+	background-color: var(--primary-color);
+	border-color: var(--primary-color);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+	background-color: #2980b9;
+	border-color: #2980b9;
+}
+
+.btn-outline-primary {
+	color: var(--primary-color);
+	border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+	background-color: var(--primary-color);
+	border-color: var(--primary-color);
+}
+
+/* Form Controls */
+.form-control,
+.form-select {
+	border-radius: var(--border-radius);
+	border: 1px solid var(--medium-gray);
+	padding: 0.5rem 0.75rem;
+	transition: var(--transition);
+}
+
+.form-control:focus,
+.form-select:focus {
+	border-color: var(--primary-color);
+	box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+}
+
+/* Video Thumbnail Link */
+#videoYoutubeLink {
+	display: block;
+	position: relative;
+	transition: var(--transition);
+}
+
+#videoYoutubeLink:hover::after {
+	content: "\f144";
+	font-family: "Font Awesome 5 Free";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	font-size: 3rem;
+	color: rgba(255, 255, 255, 0.8);
+	background-color: rgba(0, 0, 0, 0.4);
+	width: 80px;
+	height: 80px;
+	line-height: 80px;
+	text-align: center;
+	border-radius: 50%;
+}
+
+/* Segment Styles */
+.segment-item {
+	background-color: var(--light-gray);
+	border-radius: var(--border-radius);
+	padding: 1rem;
+	margin-bottom: 1rem;
+	transition: var(--transition);
+}
+
+.segment-item:hover {
+	background-color: var(--medium-gray);
+}
+
+.segment-controls {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.time-input-group {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.time-input {
+	max-width: 120px;
+}
+
+/* Loading State */
+.segment-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1.5rem;
+}
+
+.spinner-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.spinner-text {
+	font-size: 0.9rem;
+	color: var(--dark-gray);
+}
+
+/* Ready State for Segments */
+.segment-ready {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	background-color: rgba(46, 204, 113, 0.1);
+	border-left: 4px solid var(--success-color);
+}
+
+.segment-info {
+	flex-grow: 1;
+}
+
+.segment-actions {
+	display: flex;
+	align-items: center;
+}
+
+.btn-video {
+	color: var(--primary-color);
+	background-color: white;
+	border: 1px solid var(--primary-color);
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: var(--transition);
+}
+
+.btn-video:hover {
+	background-color: var(--primary-color);
+	color: white;
+}
+
+/* Video Player Modal */
+#videoPlayer {
+	background-color: black;
+	border-radius: var(--border-radius);
+	max-height: 70vh;
+}
+
+/* New Extraction Button */
+#newExtractionBtn {
+	padding: 0.75rem 2rem;
+	font-size: 1.1rem;
+}
+
+/* Toast Notifications */
+.toast-container {
+	z-index: 1050;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.segment-controls {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.time-input-group {
+		width: 100%;
+		margin-bottom: 0.5rem;
+	}
+
+	.time-input {
+		max-width: none;
+		width: 45%;
+	}
+
+	.segment-ready {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.segment-info {
+		margin-bottom: 1rem;
+		width: 100%;
+	}
+
+	.segment-actions {
+		width: 100%;
+		justify-content: flex-end;
+	}
+}
+
+/* Animation for progress spinner */
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}

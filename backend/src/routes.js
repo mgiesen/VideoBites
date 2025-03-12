@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const videoService = require('./videoService');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
 
 // Aktive Jobs speichern
 const jobs = new Map();
@@ -161,6 +163,76 @@ router.get('/download/:jobId/:segmentIndex', (req, res) =>
   const filePath = job.result[index].filePath;
 
   return res.download(filePath);
+});
+
+// Neuer Endpunkt: Video-Segment streamen (für Wiedergabe im Browser)
+router.get('/stream/:jobId/:segmentIndex', (req, res) =>
+{
+  const { jobId, segmentIndex } = req.params;
+
+  const job = jobs.get(jobId);
+
+  if (!job)
+  {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  if (job.status !== 'completed')
+  {
+    return res.status(400).json({ error: 'Job not completed yet' });
+  }
+
+  const index = parseInt(segmentIndex, 10);
+
+  if (isNaN(index) || index < 0 || index >= job.result.length)
+  {
+    return res.status(400).json({ error: 'Invalid segment index' });
+  }
+
+  const filePath = job.result[index].filePath;
+
+  // Prüfen, ob die Datei existiert
+  if (!fs.existsSync(filePath))
+  {
+    return res.status(404).json({ error: 'File not found' });
+  }
+
+  // Dateistatistiken abrufen
+  const stat = fs.statSync(filePath);
+  const fileSize = stat.size;
+  const range = req.headers.range;
+
+  // Content-Type basierend auf der Dateiendung setzen
+  const ext = path.extname(filePath).toLowerCase();
+  const contentType = ext === '.mp3' ? 'audio/mpeg' : 'video/mp4';
+
+  // Range-Request für Streaming unterstützen
+  if (range)
+  {
+    const parts = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    const chunksize = (end - start) + 1;
+    const file = fs.createReadStream(filePath, { start, end });
+
+    res.writeHead(206, {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunksize,
+      'Content-Type': contentType
+    });
+
+    file.pipe(res);
+  } else
+  {
+    // Wenn kein Range-Header, sende die ganze Datei
+    res.writeHead(200, {
+      'Content-Length': fileSize,
+      'Content-Type': contentType
+    });
+
+    fs.createReadStream(filePath).pipe(res);
+  }
 });
 
 module.exports = router;
