@@ -35,12 +35,11 @@ const videoDownloadBtn = document.getElementById('videoDownloadBtn');
 // Event listeners
 document.addEventListener('DOMContentLoaded', () =>
 {
-    // Initialize event listeners
     checkUrlBtn.addEventListener('click', validateAndFetchVideoInfo);
     addSegmentBtn.addEventListener('click', addSegment);
     extractBtn.addEventListener('click', function (event)
     {
-        event.preventDefault();  // Prevent form submission
+        event.preventDefault();
         extractSegments();
     });
     newExtractionBtn.addEventListener('click', function ()
@@ -63,20 +62,14 @@ async function callAPI(endpoint, method = 'GET', data = null)
                 'Content-Type': 'application/json'
             }
         };
-
-        if (data)
-        {
-            options.body = JSON.stringify(data);
-        }
+        if (data) options.body = JSON.stringify(data);
 
         const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-
         if (!response.ok)
         {
             const errorData = await response.json();
             throw new Error(errorData.error || 'Ein Fehler ist aufgetreten');
         }
-
         return await response.json();
     } catch (error)
     {
@@ -90,7 +83,6 @@ async function callAPI(endpoint, method = 'GET', data = null)
 async function validateAndFetchVideoInfo()
 {
     const url = videoUrlInput.value.trim();
-
     if (!url)
     {
         showToast('warning', 'Bitte gib eine YouTube-URL ein');
@@ -99,13 +91,10 @@ async function validateAndFetchVideoInfo()
 
     try
     {
-        // Disable input during validation
         checkUrlBtn.disabled = true;
         checkUrlBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Prüfe...';
 
-        // Validate URL
         const validateResponse = await callAPI('/validate', 'POST', { url });
-
         if (!validateResponse.valid)
         {
             showToast('error', 'Ungültige oder nicht verfügbare YouTube-URL');
@@ -113,21 +102,15 @@ async function validateAndFetchVideoInfo()
             return;
         }
 
-        // Fetch video info
         currentVideoInfo = await callAPI('/info', 'POST', { url });
-
-        // Display video info
         displayVideoInfo(currentVideoInfo);
 
-        // Enable segments section and quality selection
         qualityCard.style.display = 'block';
         segmentsCard.style.display = 'block';
         extractBtn.disabled = false;
 
-        // Update UI state
         checkUrlBtn.disabled = false;
         checkUrlBtn.innerHTML = '<i class="fas fa-check me-1"></i> Prüfen';
-
         showToast('success', 'Video-Informationen erfolgreich geladen');
     } catch (error)
     {
@@ -143,32 +126,24 @@ function resetValidation()
 
 function displayVideoInfo(info)
 {
-    // Update video information elements
     videoThumbnail.src = info.thumbnail;
     videoTitle.textContent = info.title;
     videoUploader.textContent = info.uploader;
 
-    // Set YouTube link
     const videoId = getYouTubeId(videoUrlInput.value.trim());
     videoYoutubeLink.href = `https://www.youtube.com/watch?v=${videoId}`;
 
-    // Format upload date (YYYYMMDD to DD.MM.YYYY)
     const uploadDate = info.upload_date;
     const formattedDate = `${uploadDate.substring(6, 8)}.${uploadDate.substring(4, 6)}.${uploadDate.substring(0, 4)}`;
     videoUploadDate.textContent = formattedDate;
 
-    // Format duration (seconds to MM:SS)
     const durationMin = Math.floor(info.duration / 60);
     const durationSec = info.duration % 60;
     videoDuration.textContent = `${durationMin}:${durationSec.toString().padStart(2, '0')}`;
 
-    // Format view count with thousands separator
     videoViews.textContent = info.view_count.toLocaleString('de-DE');
-
-    // Show video info card
     videoInfoCard.style.display = 'block';
 
-    // Reset all segments to have the max duration of the video
     updateSegmentTimeConstraints(info.duration);
 }
 
@@ -184,121 +159,145 @@ function getYouTubeId(url)
 function addSegment()
 {
     const segmentIndex = document.querySelectorAll('.segment-item').length;
-    const maxDuration = currentVideoInfo ? currentVideoInfo.duration : 0;
+    const maxDuration = currentVideoInfo ? currentVideoInfo.duration : 600;
 
     const segmentHtml = `
         <div class="segment-item" data-index="${segmentIndex}">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0">Segment ${segmentIndex + 1}</h6>
+                <h6 class="mb-0"><b>Segment ${segmentIndex + 1}</b> <span class="badge bg-secondary segment-duration">Dauer: 10s</span></h6>
                 <button class="btn btn-sm btn-outline-danger remove-segment-btn">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="segment-controls">
-                <div class="time-input-group">
-                    <div class="time-input">
-                        <label for="start-time-${segmentIndex}" class="form-label">Startzeit (s)</label>
-                        <input type="number" class="form-control start-time" id="start-time-${segmentIndex}" 
-                               min="0" max="${maxDuration}" value="0" step="1" required>
+                <div class="time-input mb-2">
+                    <div class="label-container">
+                        <label for="start-time-${segmentIndex}" class="time-label">Startzeit</label>
+                        <span class="time-display start-time-display">00:00</span>
                     </div>
-                    <div class="time-input">
-                        <label for="end-time-${segmentIndex}" class="form-label">Endzeit (s)</label>
-                        <input type="number" class="form-control end-time" id="end-time-${segmentIndex}" 
-                               min="1" max="${maxDuration}" value="${maxDuration > 10 ? 10 : maxDuration}" step="1" required>
-                    </div>
+                    <input type="range" class="form-range start-time" id="start-time-${segmentIndex}" 
+                        min="0" max="${maxDuration}" step="1" value="0">
                 </div>
-                <div class="d-flex align-items-end">
-                    <span class="badge bg-secondary ms-2">Dauer: <span class="segment-duration">10s</span></span>
+                <div class="time-input">
+                    <div class="label-container">
+                        <label for="end-time-${segmentIndex}" class="time-label">Endzeit</label>
+                        <span class="time-display end-time-display">${formatTime(maxDuration > 10 ? 10 : maxDuration)}</span>
+                    </div>
+                    <input type="range" class="form-range end-time" id="end-time-${segmentIndex}" 
+                        min="0" max="${maxDuration}" step="1" value="${maxDuration > 10 ? 10 : maxDuration}">
                 </div>
             </div>
         </div>
     `;
 
     segmentsContainer.insertAdjacentHTML('beforeend', segmentHtml);
-
-    // Add event listeners to new segment
     const newSegment = segmentsContainer.lastElementChild;
 
-    // Remove button
     newSegment.querySelector('.remove-segment-btn').addEventListener('click', function ()
     {
         removeSegment(newSegment);
     });
 
-    // Time inputs
     const startTimeInput = newSegment.querySelector('.start-time');
     const endTimeInput = newSegment.querySelector('.end-time');
+    const startTimeDisplay = newSegment.querySelector('.start-time-display');
+    const endTimeDisplay = newSegment.querySelector('.end-time-display');
     const durationSpan = newSegment.querySelector('.segment-duration');
 
-    // Update duration display on change
+    startTimeDisplay.textContent = formatTime(parseInt(startTimeInput.value));
+    endTimeDisplay.textContent = formatTime(parseInt(endTimeInput.value));
+    updateSegmentDuration(parseInt(startTimeInput.value), parseInt(endTimeInput.value), durationSpan);
+
     startTimeInput.addEventListener('input', () =>
     {
-        updateSegmentDuration(startTimeInput, endTimeInput, durationSpan);
+        let start = parseInt(startTimeInput.value);
+        let end = parseInt(endTimeInput.value);
+        const minDuration = 1;
+        if (end - start < minDuration)
+        {
+            end = start + minDuration;
+            if (end > maxDuration)
+            {
+                end = maxDuration;
+                start = end - minDuration;
+                startTimeInput.value = start;
+            }
+            endTimeInput.value = end;
+        }
+        startTimeDisplay.textContent = formatTime(start);
+        endTimeDisplay.textContent = formatTime(end);
+        updateSegmentDuration(start, end, durationSpan);
     });
 
     endTimeInput.addEventListener('input', () =>
     {
-        updateSegmentDuration(startTimeInput, endTimeInput, durationSpan);
+        let start = parseInt(startTimeInput.value);
+        let end = parseInt(endTimeInput.value);
+        const minDuration = 1;
+        if (end - start < minDuration)
+        {
+            start = end - minDuration;
+            if (start < 0)
+            {
+                start = 0;
+                end = minDuration;
+                endTimeInput.value = end;
+            }
+            startTimeInput.value = start;
+        }
+        startTimeDisplay.textContent = formatTime(start);
+        endTimeDisplay.textContent = formatTime(end);
+        updateSegmentDuration(start, end, durationSpan);
     });
 
-    // Ensure extract button is enabled only if there's at least one segment
     updateExtractButtonState();
 }
 
 function removeSegment(segmentElement)
 {
     segmentElement.remove();
-
-    // Renumber remaining segments
     const segments = document.querySelectorAll('.segment-item');
     segments.forEach((segment, index) =>
     {
         segment.setAttribute('data-index', index);
-        segment.querySelector('h6').textContent = `Segment ${index + 1}`;
+        const h6 = segment.querySelector('h6');
+        h6.innerHTML = `Segment ${index + 1} <span class="badge bg-secondary segment-duration">${segment.querySelector('.segment-duration').textContent}</span>`;
     });
-
-    // Update extract button state
     updateExtractButtonState();
 }
 
 function updateSegmentTimeConstraints(maxDuration)
 {
     const segments = document.querySelectorAll('.segment-item');
-
     segments.forEach(segment =>
     {
         const startTimeInput = segment.querySelector('.start-time');
         const endTimeInput = segment.querySelector('.end-time');
+        const startTimeDisplay = segment.querySelector('.start-time-display');
+        const endTimeDisplay = segment.querySelector('.end-time-display');
+        const durationSpan = segment.querySelector('.segment-duration');
 
         startTimeInput.max = maxDuration - 1;
         endTimeInput.max = maxDuration;
 
-        // Update end time if it exceeds max duration
-        if (parseInt(endTimeInput.value) > maxDuration)
-        {
-            endTimeInput.value = maxDuration;
-        }
+        let start = parseInt(startTimeInput.value);
+        let end = parseInt(endTimeInput.value);
+        if (start > maxDuration - 1) start = maxDuration - 1;
+        if (end > maxDuration) end = maxDuration;
+        if (end - start < 1) end = start + 1;
 
-        // Update duration display
-        const durationSpan = segment.querySelector('.segment-duration');
-        updateSegmentDuration(startTimeInput, endTimeInput, durationSpan);
+        startTimeInput.value = start;
+        endTimeInput.value = end;
+        startTimeDisplay.textContent = formatTime(start);
+        endTimeDisplay.textContent = formatTime(end);
+        updateSegmentDuration(start, end, durationSpan);
     });
 }
 
-function updateSegmentDuration(startTimeInput, endTimeInput, durationSpan)
+function updateSegmentDuration(start, end, durationSpan)
 {
-    const startTime = parseInt(startTimeInput.value) || 0;
-    const endTime = parseInt(endTimeInput.value) || 0;
-
-    // Validate: end time must be greater than start time
-    if (endTime <= startTime)
-    {
-        endTimeInput.value = startTime + 1;
-    }
-
-    // Update duration display
-    const duration = parseInt(endTimeInput.value) - parseInt(startTimeInput.value);
-    durationSpan.textContent = `${duration}s`;
+    const duration = end - start;
+    durationSpan.textContent = `Dauer: ${duration}s`;
 }
 
 function updateExtractButtonState()
@@ -310,63 +309,48 @@ function updateExtractButtonState()
 // Extraction process
 async function extractSegments()
 {
+    const segmentElements = document.querySelectorAll('.segment-item');
+    if (segmentElements.length === 0)
+    {
+        showToast('warning', 'Füge mindestens ein Segment hinzu');
+        return;
+    }
+
+    const segments = [];
+    let hasErrors = false;
+
+    segmentElements.forEach(segmentElement =>
+    {
+        const startTime = parseInt(segmentElement.querySelector('.start-time').value);
+        const endTime = parseInt(segmentElement.querySelector('.end-time').value);
+        if (isNaN(startTime) || isNaN(endTime) || endTime <= startTime)
+        {
+            hasErrors = true;
+            return;
+        }
+        segments.push({ start: startTime, end: endTime });
+    });
+
+    if (hasErrors)
+    {
+        showToast('error', 'Ungültige Zeitangaben in einem oder mehreren Segmenten');
+        return;
+    }
+
+    currentSegments = segments;
+    completedSegments = [];
+
+    enterExtractionMode();
+    updateSegmentsToLoadingState();
+
     try
     {
-        // Validate if we have segments
-        const segmentElements = document.querySelectorAll('.segment-item');
-        if (segmentElements.length === 0)
-        {
-            showToast('warning', 'Füge mindestens ein Segment hinzu');
-            return;
-        }
-
-        // Collect segment data
-        const segments = [];
-        let hasErrors = false;
-
-        segmentElements.forEach(segmentElement =>
-        {
-            const startTime = parseInt(segmentElement.querySelector('.start-time').value);
-            const endTime = parseInt(segmentElement.querySelector('.end-time').value);
-
-            if (isNaN(startTime) || isNaN(endTime) || endTime <= startTime)
-            {
-                hasErrors = true;
-                return;
-            }
-
-            segments.push({
-                start: startTime,
-                end: endTime
-            });
-        });
-
-        if (hasErrors)
-        {
-            showToast('error', 'Ungültige Zeitangaben in einem oder mehreren Segmenten');
-            return;
-        }
-
-        // Save current segments for reference
-        currentSegments = segments;
-        completedSegments = [];
-
-        // Update UI to extraction mode
-        enterExtractionMode();
-
-        // Replace segment UI with loading indicators
-        updateSegmentsToLoadingState();
-
-        // Start extraction
         const extractResponse = await callAPI('/extract', 'POST', {
             url: videoUrlInput.value.trim(),
             segments: segments,
             quality: qualitySelect.value
         });
-
         currentJobId = extractResponse.jobId;
-
-        // Start polling for status
         startStatusPolling(currentJobId);
     } catch (error)
     {
@@ -377,64 +361,32 @@ async function extractSegments()
 
 function enterExtractionMode()
 {
-    // Hide URL card
     urlCard.style.display = 'none';
-
-    // Hide segment controls
     segmentsHeader.style.display = 'none';
     addSegmentBtn.style.display = 'none';
     extractBtnContainer.style.display = 'none';
-
-    // Disable quality selection
     qualitySelect.disabled = true;
-
-    // Remove segment removal buttons
-    document.querySelectorAll('.remove-segment-btn').forEach(btn =>
-    {
-        btn.style.display = 'none';
-    });
-
-    // Disable time inputs
-    document.querySelectorAll('.start-time, .end-time').forEach(input =>
-    {
-        input.disabled = true;
-    });
+    document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'none');
+    document.querySelectorAll('.start-time, .end-time').forEach(input => input.disabled = true);
 }
 
 function exitExtractionMode()
 {
-    // Show URL card
     urlCard.style.display = 'block';
-
-    // Show segment controls
     segmentsHeader.style.display = 'flex';
     addSegmentBtn.style.display = 'block';
     extractBtnContainer.style.display = 'block';
-
-    // Enable quality selection
     qualitySelect.disabled = false;
-
-    // Show segment removal buttons
-    document.querySelectorAll('.remove-segment-btn').forEach(btn =>
-    {
-        btn.style.display = 'block';
-    });
-
-    // Enable time inputs
-    document.querySelectorAll('.start-time, .end-time').forEach(input =>
-    {
-        input.disabled = false;
-    });
+    document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'block');
+    document.querySelectorAll('.start-time, .end-time').forEach(input => input.disabled = false);
 }
 
 function updateSegmentsToLoadingState()
 {
     segmentsContainer.innerHTML = '';
-
     currentSegments.forEach((segment, index) =>
     {
         const duration = segment.end - segment.start;
-
         const loadingSegmentHtml = `
             <div class="segment-item segment-loading" data-index="${index}">
                 <div class="spinner-container">
@@ -452,7 +404,6 @@ function updateSegmentsToLoadingState()
                 </div>
             </div>
         `;
-
         segmentsContainer.insertAdjacentHTML('beforeend', loadingSegmentHtml);
     });
 }
@@ -461,10 +412,7 @@ function updateSegmentToReadyState(index, filePath)
 {
     const segment = currentSegments[index];
     const duration = segment.end - segment.start;
-
-    // Find the segment element
     const segmentElement = document.querySelector(`.segment-item[data-index="${index}"]`);
-
     if (segmentElement)
     {
         segmentElement.className = 'segment-item segment-ready';
@@ -483,8 +431,6 @@ function updateSegmentToReadyState(index, filePath)
                 </button>
             </div>
         `;
-
-        // Add event listener to play button
         segmentElement.querySelector('.play-btn').addEventListener('click', function ()
         {
             playVideo(index);
@@ -494,41 +440,27 @@ function updateSegmentToReadyState(index, filePath)
 
 function startStatusPolling(jobId)
 {
-    // Clear any existing interval
-    if (statusCheckInterval)
-    {
-        clearInterval(statusCheckInterval);
-    }
-
-    // Poll every 2 seconds
+    if (statusCheckInterval) clearInterval(statusCheckInterval);
     statusCheckInterval = setInterval(async () =>
     {
         try
         {
             const status = await callAPI(`/status/${jobId}`);
-
-            // Check if complete or failed
             if (status.status === 'completed')
             {
-                // Update UI for completed job
                 handleCompletedJob(status);
             } else if (status.status === 'failed')
             {
                 clearInterval(statusCheckInterval);
                 showToast('error', `Extraktion fehlgeschlagen: ${status.error || 'Unbekannter Fehler'}`);
                 exitExtractionMode();
-            } else
+            } else if (status.result && Array.isArray(status.result))
             {
-                // For pending jobs, check if any results are already available
-                if (status.result && Array.isArray(status.result))
-                {
-                    updateCompletedSegments(status.result);
-                }
+                updateCompletedSegments(status.result);
             }
         } catch (error)
         {
             console.error('Status check error:', error);
-            // Continue polling even if there's an error
         }
     }, 2000);
 }
@@ -536,10 +468,8 @@ function startStatusPolling(jobId)
 function updateCompletedSegments(results)
 {
     if (!results) return;
-
     results.forEach((result, index) =>
     {
-        // Check if this segment has already been processed
         if (!completedSegments.includes(index))
         {
             completedSegments.push(index);
@@ -551,51 +481,30 @@ function updateCompletedSegments(results)
 function handleCompletedJob(status)
 {
     clearInterval(statusCheckInterval);
-
-    // Update all segments to ready state
-    if (status.result && Array.isArray(status.result))
-    {
-        updateCompletedSegments(status.result);
-    }
-
-    // Show the "New Extraction" button
+    if (status.result && Array.isArray(status.result)) updateCompletedSegments(status.result);
     newExtractionContainer.style.display = 'block';
-
     showToast('success', 'Alle Segmente wurden erfolgreich extrahiert');
 }
 
 function playVideo(index)
 {
-    // Use streaming endpoint for playing in browser
     const streamUrl = `${API_BASE_URL}/stream/${currentJobId}/${index}`;
     const downloadUrl = `${API_BASE_URL}/download/${currentJobId}/${index}`;
-
-    // Set video source
     videoPlayer.src = streamUrl;
-
-    // Set download link
     videoDownloadBtn.href = downloadUrl;
 
-    // Show modal with video
     const videoModalEl = document.getElementById('videoPlayerModal');
     const videoModal = new bootstrap.Modal(videoModalEl);
     videoModal.show();
 
-    // Update modal title with segment info
     const segment = currentSegments[index];
     document.getElementById('videoPlayerModalLabel').textContent =
         `Segment ${index + 1}: ${formatTime(segment.start)} - ${formatTime(segment.end)}`;
 
-    // Play video when modal is shown
     videoModalEl.addEventListener('shown.bs.modal', function ()
     {
-        videoPlayer.play().catch(error =>
-        {
-            console.error('Video playback error:', error);
-        });
+        videoPlayer.play().catch(error => console.error('Video playback error:', error));
     });
-
-    // Pause video when modal is hidden
     videoModalEl.addEventListener('hidden.bs.modal', function ()
     {
         videoPlayer.pause();
@@ -606,20 +515,17 @@ function formatTime(seconds)
 {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 // Utility functions
 function showToast(type, message)
 {
-    // Create toast element
     const toast = document.createElement('div');
     toast.className = `toast align-items-center text-white bg-${getToastBackground(type)} border-0`;
     toast.setAttribute('role', 'alert');
     toast.setAttribute('aria-live', 'assertive');
     toast.setAttribute('aria-atomic', 'true');
-
-    // Toast content
     toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">
@@ -630,9 +536,7 @@ function showToast(type, message)
         </div>
     `;
 
-    // Add to container (create if doesn't exist)
     let toastContainer = document.querySelector('.toast-container');
-
     if (!toastContainer)
     {
         toastContainer = document.createElement('div');
@@ -641,12 +545,8 @@ function showToast(type, message)
     }
 
     toastContainer.appendChild(toast);
-
-    // Initialize and show toast
     const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 5000 });
     bsToast.show();
-
-    // Remove from DOM after hidden
     toast.addEventListener('hidden.bs.toast', function ()
     {
         toast.remove();
