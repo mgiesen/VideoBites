@@ -15,7 +15,6 @@
 		<div class="container">
 			<header class="my-5 text-center">
 				<h1 class="display-4">Video<span class="text-primary">Bites</span></h1>
-				<p class="lead">Extrahiere spezifische Ausschnitte aus YouTube-Videos</p>
 			</header>
 
 			<main>
@@ -51,22 +50,22 @@
 					</div>
 				</div>
 
-				<!-- Video Download Options (Hidden initially) -->
+				<!-- Ausgabe Einstellungen -->
 				<div class="card mb-4 shadow-sm" id="qualityCard" style="display: none">
 					<div class="card-body">
-						<h2 class="card-title h5 mb-3">Video Download</h2>
+						<h2 class="card-title h5 mb-3">Ausgabe Einstellungen</h2>
 						<div class="mb-3">
-							<label for="qualitySelect" class="form-label">Videoqualität auswählen:</label>
+							<label for="qualitySelect" class="form-label">Format auswählen:</label>
 							<select class="form-select" id="qualitySelect">
-								<option value="144">144p</option>
-								<option value="240">240p</option>
-								<option value="360">360p</option>
-								<option value="480">480p</option>
-								<option value="720" selected>720p (Standard)</option>
-								<option value="1080">1080p (Full HD)</option>
-								<option value="1440">1440p (2K)</option>
-								<option value="2160">2160p (4K)</option>
-								<option value="audio">Nur Audio</option>
+								<option value="144">Video 144p</option>
+								<option value="240">Video 240p</option>
+								<option value="360">Video 360p</option>
+								<option value="480">Video 480p</option>
+								<option value="720" selected>Video 720p</option>
+								<option value="1080">Video 1080p (Full HD)</option>
+								<option value="1440">Video 1440p (2K)</option>
+								<option value="2160">Video 2160p (4K)</option>
+								<option value="audio">Audio</option>
 							</select>
 						</div>
 					</div>
@@ -84,7 +83,7 @@
 							<!-- Segments will be added here dynamically -->
 						</div>
 					</div>
-					<div class="card-footer" id="extractBtnContainer">
+					<div class="card-footer py-3" id="extractBtnContainer">
 						<button class="btn btn-primary w-100" id="extractBtn" disabled><i class="fas fa-download me-1"></i> Segmente extrahieren</button>
 					</div>
 				</div>

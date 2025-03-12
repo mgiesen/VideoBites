@@ -36,19 +36,25 @@ const videoDownloadBtn = document.getElementById('videoDownloadBtn');
 document.addEventListener('DOMContentLoaded', () =>
 {
     checkUrlBtn.addEventListener('click', validateAndFetchVideoInfo);
-    addSegmentBtn.addEventListener('click', addSegment);
+
+    addSegmentBtn.addEventListener('click', function ()
+    {
+        addSegment(false);
+    });
+
     extractBtn.addEventListener('click', function (event)
     {
         event.preventDefault();
         extractSegments();
     });
+
     newExtractionBtn.addEventListener('click', function ()
     {
         window.location.reload();
     });
 
     // Initialize with one empty segment
-    addSegment();
+    addSegment(true);
 });
 
 // API Functions
@@ -156,18 +162,18 @@ function getYouTubeId(url)
 }
 
 // Segment management
-function addSegment()
+function addSegment(isFirstElement = false)
 {
     const segmentIndex = document.querySelectorAll('.segment-item').length;
     const maxDuration = currentVideoInfo ? currentVideoInfo.duration : 600;
+    // Only show delete button if it's NOT the first segment
+    const deleteIcon = !isFirstElement ? '<button type="button" class="btn btn-sm btn-light remove-segment-btn" aria-label="Delete"><i class="fas fa-trash-alt"></i></button>' : '';
 
     const segmentHtml = `
         <div class="segment-item" data-index="${segmentIndex}">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="mb-0"><b>Segment ${segmentIndex + 1}</b> <span class="badge bg-secondary segment-duration">Dauer: 10s</span></h6>
-                <button class="btn btn-sm btn-outline-danger remove-segment-btn">
-                    <i class="fas fa-times"></i>
-                </button>
+                ${deleteIcon}
             </div>
             <div class="segment-controls">
                 <div class="time-input mb-2">
@@ -193,10 +199,15 @@ function addSegment()
     segmentsContainer.insertAdjacentHTML('beforeend', segmentHtml);
     const newSegment = segmentsContainer.lastElementChild;
 
-    newSegment.querySelector('.remove-segment-btn').addEventListener('click', function ()
+    // Only add event listener if the delete button exists
+    const removeBtn = newSegment.querySelector('.remove-segment-btn');
+    if (removeBtn)
     {
-        removeSegment(newSegment);
-    });
+        removeBtn.addEventListener('click', function ()
+        {
+            removeSegment(newSegment);
+        });
+    }
 
     const startTimeInput = newSegment.querySelector('.start-time');
     const endTimeInput = newSegment.querySelector('.end-time');
@@ -208,44 +219,50 @@ function addSegment()
     endTimeDisplay.textContent = formatTime(parseInt(endTimeInput.value));
     updateSegmentDuration(parseInt(startTimeInput.value), parseInt(endTimeInput.value), durationSpan);
 
+    // Improved startTime slider handler - pushes endTime when needed
     startTimeInput.addEventListener('input', () =>
     {
         let start = parseInt(startTimeInput.value);
         let end = parseInt(endTimeInput.value);
         const minDuration = 1;
-        if (end - start < minDuration)
+        const maxDuration = parseInt(endTimeInput.max);
+
+        // If start time is being pushed beyond end time - minDuration
+        if (start > end - minDuration)
         {
-            end = start + minDuration;
-            if (end > maxDuration)
-            {
-                end = maxDuration;
-                start = end - minDuration;
-                startTimeInput.value = start;
-            }
+            // Push the end time forward
+            end = Math.min(start + minDuration, maxDuration);
             endTimeInput.value = end;
+            endTimeDisplay.textContent = formatTime(end);
         }
+
         startTimeDisplay.textContent = formatTime(start);
-        endTimeDisplay.textContent = formatTime(end);
         updateSegmentDuration(start, end, durationSpan);
     });
 
+    // Improved endTime slider handler - pushes startTime when needed
     endTimeInput.addEventListener('input', () =>
     {
         let start = parseInt(startTimeInput.value);
         let end = parseInt(endTimeInput.value);
         const minDuration = 1;
-        if (end - start < minDuration)
+
+        // Ensure end time is at least minDuration
+        if (end < minDuration)
         {
-            start = end - minDuration;
-            if (start < 0)
-            {
-                start = 0;
-                end = minDuration;
-                endTimeInput.value = end;
-            }
-            startTimeInput.value = start;
+            end = minDuration;
+            endTimeInput.value = end;
         }
-        startTimeDisplay.textContent = formatTime(start);
+
+        // If end time is being pulled below start time + minDuration
+        if (end < start + minDuration)
+        {
+            // Pull the start time backward
+            start = Math.max(end - minDuration, 0);
+            startTimeInput.value = start;
+            startTimeDisplay.textContent = formatTime(start);
+        }
+
         endTimeDisplay.textContent = formatTime(end);
         updateSegmentDuration(start, end, durationSpan);
     });
@@ -260,8 +277,7 @@ function removeSegment(segmentElement)
     segments.forEach((segment, index) =>
     {
         segment.setAttribute('data-index', index);
-        const h6 = segment.querySelector('h6');
-        h6.innerHTML = `Segment ${index + 1} <span class="badge bg-secondary segment-duration">${segment.querySelector('.segment-duration').textContent}</span>`;
+        segment.querySelector('h6').innerHTML = `<b>Segment ${index + 1}</b> <span class="badge bg-secondary segment-duration">${segment.querySelector('.segment-duration').textContent}</span>`;
     });
     updateExtractButtonState();
 }
@@ -294,10 +310,25 @@ function updateSegmentTimeConstraints(maxDuration)
     });
 }
 
+function formatDuration(seconds)
+{
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0)
+    {
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else
+    {
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+}
+
 function updateSegmentDuration(start, end, durationSpan)
 {
     const duration = end - start;
-    durationSpan.textContent = `Dauer: ${duration}s`;
+    durationSpan.textContent = `Dauer: ${formatDuration(duration)}`;
 }
 
 function updateExtractButtonState()
@@ -398,7 +429,7 @@ function updateSegmentsToLoadingState()
                         <small class="text-muted">
                             Startzeit: ${formatTime(segment.start)} | 
                             Endzeit: ${formatTime(segment.end)} | 
-                            Dauer: ${duration}s
+                            Dauer: ${formatDuration(duration)}
                         </small>
                     </div>
                 </div>
@@ -422,7 +453,7 @@ function updateSegmentToReadyState(index, filePath)
                 <p class="mb-0 text-muted">
                     Startzeit: ${formatTime(segment.start)} | 
                     Endzeit: ${formatTime(segment.end)} | 
-                    Dauer: ${duration}s
+                    Dauer: ${formatDuration(duration)}
                 </p>
             </div>
             <div class="segment-actions">

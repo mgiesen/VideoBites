@@ -40,8 +40,9 @@ header .text-primary {
 	overflow: hidden;
 }
 
-.card:hover {
-	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+.card-body {
+	background-color: rgba(255, 255, 255, 0.1);
+	padding: 1.5rem;
 }
 
 .card-title {
@@ -93,8 +94,8 @@ header .text-primary {
 
 .form-control:focus,
 .form-select:focus {
-	border-color: var(--primary-color);
-	box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+	border: 1px solid var(--medium-gray);
+	box-shadow: none;
 }
 
 /* Video Thumbnail Link */
@@ -123,7 +124,7 @@ header .text-primary {
 
 /* Segment Styles */
 .segment-item {
-	background-color: var(--medium-gray);
+	background-color: #e2f0f9;
 	border-radius: var(--border-radius);
 	padding: 1rem;
 	margin-bottom: 1rem;
