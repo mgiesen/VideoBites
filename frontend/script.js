@@ -1,5 +1,5 @@
 // Global variables
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = '/api';
 let currentVideoInfo = null;
 let currentJobId = null;
 let currentSegments = [];
@@ -25,6 +25,7 @@ const parallelExtractionCheck = document.getElementById('parallelExtractionCheck
 const segmentsCard = document.getElementById('segmentsCard');
 const segmentsHeader = document.getElementById('segmentsHeader');
 const addSegmentBtn = document.getElementById('addSegmentBtn');
+const addSegmentContainer = document.getElementById('addSegmentContainer');
 const segmentsContainer = document.getElementById('segmentsContainer');
 const extractBtnContainer = document.getElementById('extractBtnContainer');
 const extractBtn = document.getElementById('extractBtn');
@@ -474,7 +475,7 @@ function enterExtractionMode()
     qualityCard.style.display = 'none';
 
     segmentsHeader.style.display = 'none';
-    addSegmentBtn.style.display = 'none';
+    addSegmentContainer.style.display = 'none';
     extractBtnContainer.style.display = 'none';
 
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'none');
@@ -487,7 +488,7 @@ function exitExtractionMode()
     qualityCard.style.display = 'block';
 
     segmentsHeader.style.display = 'flex';
-    addSegmentBtn.style.display = 'block';
+    addSegmentContainer.style.display = 'block';
     extractBtnContainer.style.display = 'block';
 
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'block');

@@ -10,13 +10,16 @@ RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/te
 WORKDIR /app
 
 # Package-Dateien kopieren
-COPY package*.json ./
+COPY backend/package*.json ./
 
 # Node-Abhängigkeiten installieren
 RUN npm install
 
-# Anwendungscode kopieren
-COPY . .
+# Backend-Code kopieren
+COPY backend/src ./src
+
+# Frontend-Code kopieren
+COPY frontend ./public
 
 # Verzeichnis für heruntergeladene Videos erstellen
 RUN mkdir -p data

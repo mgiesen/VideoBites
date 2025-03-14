@@ -11,18 +11,15 @@ Die Anwendung ist besonders nützlich für:
 
 ## Funktionen
 
-- **Benutzerfreundliche Weboberfläche** - Einfache Bedienung ohne Programmierkenntnisse
-- **Flexible Segmentauswahl** - Extrahiere beliebig viele Zeitabschnitte aus einem Video und füge sie optional zu einem Zusammenschnitt zusammen
+- **Benutzerfreundliche Weboberfläche** - Einfache Bedienung über Webbrowser
+- **Flexible Segmentauswahl** - Extrahiere beliebig viele Zeitabschnitte aus einem Video und füge sie optional ganz ohne Videoschnittprogramm zusammen
 - **Vorschau-Funktion** - Anzeige der extrahierten Segmente direkt im Browser
-- **Qualitätsauswahl** - Wähle zwischen verschiedenen Videoqualitäten (144p bis 4K)
-- **Audio-Modus** - Möglichkeit, nur den Audiokanal zu extrahieren
-- **Download-Option** - Speichere die Ausschnitte auf deinem Gerät
+- **Formatauswahl** - Wähle zwischen Audio und Video sowie verschiedenen Videoqualitäten (144p bis 4K)
 - **Quellendokumentation** - Erstellt automatisch eine JSON-Datei mit umfassenden Metadaten und Segmentinformationen
-- **Vollständige API** - Alle Funktionen sind auch programmatisch über die API zugänglich
 
 ## Rechtliche Hinweise
 
-Die Nutzung von VideoBites muss im Einklang mit den Urheber- und Nutzungsrechten von YouTube und anderen Plattformen stehen. Das Herunterladen ist nur erlaubt, wenn der Rechteinhaber es gestattet oder eine entsprechende Lizenz vorliegt. Die Verantwortung für die rechtmäßige Nutzung liegt beim Nutzer.
+Die Nutzung von `VideoBites` muss im Einklang mit den Urheber- und Nutzungsrechten von YouTube und anderen Plattformen stehen. Die Verantwortung für die rechtmäßige Nutzung liegt beim Nutzer.
 
 ## Installation
 
@@ -48,11 +45,9 @@ Die Nutzung von VideoBites muss im Einklang mit den Urheber- und Nutzungsrechten
 ## Bedienung der Weboberfläche
 
 1. **Video auswählen**: Gib eine YouTube-URL ein und klicke auf "Prüfen".
-2. **Qualität wählen**: Wähle die gewünschte Videoqualität aus dem Dropdown-Menü.
-3. **Optionen aktivieren**: Optional "Zusammenschnitt erstellen" und/oder "Quellendokumentation erstellen" aktivieren.
-4. **Segmente definieren**: Füge beliebig viele Zeitabschnitte hinzu, indem du Start- und Endzeiten festlegst.
-5. **Extrahieren**: Klicke auf "Segmente extrahieren", um den Prozess zu starten.
-6. **Vorschau & Download**: Wenn die Extraktion abgeschlossen ist, kannst du die Segmente ansehen und herunterladen.
+1. **Segmente definieren**: Füge beliebig viele Zeitabschnitte/Segmente hinzu, und definiere die gewünschten Start- und Endzeiten.
+1. **Extrahieren**: Klicke auf "Segmente extrahieren", um den Prozess zu starten.
+1. **Vorschau & Download**: Wenn die Extraktion abgeschlossen ist, kannst du die Segmente ansehen und herunterladen.
 
 ## Quellendokumentation
 
@@ -62,68 +57,3 @@ Die Quellendokumentation ist eine vollständige Nachverfolgung der extrahierten 
 - Speichert genaue Zeitmarken und Dateinamen aller Segmente
 - Erleichtert korrekte Quellenangaben und Zitationen
 - Wird als JSON-Datei bereitgestellt
-
-## API Dokumentation
-
-Die VideoBites API kann mit jedem HTTP-Client (z.B. curl, Postman, Thunder Client, etc.) getestet werden. Hier sind Beispiele für alle unterstützten Endpunkte:
-
-### 1. URL validieren
-
-Prüft, ob eine YouTube-URL gültig ist und das Video verfügbar ist.
-
-**Request**
-
-```http
-POST http://localhost:3000/api/validate
-Content-Type: application/json
-
-{
-  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-}
-```
-
-### 2. Video-Informationen abrufen
-
-Ruft Metadaten über das Video ab.
-
-**Request**
-
-```http
-POST http://localhost:3000/api/info
-Content-Type: application/json
-
-{
-  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-}
-```
-
-### 3. Video-Segmente extrahieren
-
-Lädt ein Video herunter und extrahiert die angegebenen Zeitabschnitte.
-
-**Request**
-
-```http
-POST http://localhost:3000/api/extract
-Content-Type: application/json
-
-{
-  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-  "segments": [
-    { "start": 10, "end": 20 },
-    { "start": 30, "end": 40 }
-  ],
-  "quality": "720",
-  "mergeSegments": true
-}
-```
-
-### 4. Dokumentation abrufen
-
-Liefert die generierte Quellendokumentation für einen abgeschlossenen Job.
-
-**Request**
-
-```http
-GET http://localhost:3000/api/documentation/{jobId}
-```

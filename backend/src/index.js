@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const routes = require('./routes');
 
 // Express-App initialisieren
@@ -19,16 +20,29 @@ const corsOptions = {
 app.use(express.json());
 app.use(cors(corsOptions));
 
-// Static files for streamed videos
+// Static files für Frontend
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// Static files für heruntergeladene Videos
 app.use('/data', express.static(process.env.DOWNLOAD_DIR || '/app/data'));
 
-// Routen einbinden
+// API-Routen einbinden
 app.use('/api', routes);
 
 // Health Check
 app.get('/health', (req, res) =>
 {
   res.status(200).json({ status: 'ok' });
+});
+
+// Catch-all Route für das Frontend (Single-Page-Application Support)
+app.get('*', (req, res) =>
+{
+  // Prüfen, ob es eine API-Route ist
+  if (!req.path.startsWith('/api/'))
+  {
+    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  }
 });
 
 // Error-Handler
@@ -46,6 +60,7 @@ app.use((err, req, res, next) =>
 app.listen(PORT, () =>
 {
   console.log(`Server läuft auf Port ${PORT}`);
+  console.log('Frontend verfügbar unter http://localhost:3000');
   console.log('Verfügbare API-Endpunkte:');
   console.log('- POST /api/validate - URL validieren');
   console.log('- POST /api/info - Video-Info abrufen');
