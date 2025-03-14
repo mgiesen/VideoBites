@@ -107,7 +107,8 @@ const videoService = {
         );
         job.result.push({
           segment,
-          filePath: segmentPath
+          filePath: segmentPath,
+          type: quality === "audio" ? "audio" : "video"
         });
       }
 
@@ -121,7 +122,8 @@ const videoService = {
         const endTime = startTime + totalDuration;
         job.result.push({
           segment: { start: startTime, end: endTime, isMerged: true },
-          filePath: mergedFilePath
+          filePath: mergedFilePath,
+          type: quality === "audio" ? "audio" : "video"
         });
       }
 
@@ -166,21 +168,17 @@ const videoService = {
       } else
       {
         // Bei numerischen Werten nach Auflösung auswählen
-        // Erweiterte Format-Auswahl, die bessere Matches für die gewünschte Auflösung liefert
         formatOption = `bestvideo[height<=${quality}]+bestaudio/best[height<=${quality}]`;
       }
 
-      // Füge Verbose-Ausgabe hinzu, um die tatsächlich ausgewählte Auflösung zu sehen
       const command = `yt-dlp -f "${formatOption}" --verbose -o "${outputPath}" "${url}"`;
 
       console.log(`Starting download: ${url} with quality: ${quality}`);
       const { stdout, stderr } = await execAsync(command);
 
-      // Log für Debug-Zwecke
       console.log(`Selected format details: ${stderr}`);
       console.log(`Download completed: ${url}`);
 
-      // Finde die heruntergeladene Datei - wir müssen prüfen, welche Erweiterung verwendet wurde
       const files = await fsPromises.readdir(DOWNLOAD_DIR);
       const downloadedFile = files.find(file => file.startsWith(outputName + '.'));
 
@@ -189,11 +187,9 @@ const videoService = {
         throw new Error('Downloaded file not found');
       }
 
-      // Zeige Infos über die heruntergeladene Datei an
       const fileStats = await fsPromises.stat(path.join(DOWNLOAD_DIR, downloadedFile));
       console.log(`Downloaded file: ${downloadedFile}, size: ${(fileStats.size / (1024 * 1024)).toFixed(2)} MB`);
 
-      // FFprobe aufrufen, um Videoinformationen zu erhalten
       try
       {
         const ffprobeCommand = `ffprobe -v error -select_streams v:0 -show_entries stream=width,height,codec_name -of csv=s=,:p=0 "${path.join(DOWNLOAD_DIR, downloadedFile)}"`;
@@ -225,11 +221,9 @@ const videoService = {
   {
     try
     {
-      // Bestimme Dateierweiterung und -pfad basierend auf dem audioOnly-Parameter
       const fileExtension = audioOnly ? "mp3" : "mp4";
       const outputFile = path.join(DOWNLOAD_DIR, `${outputName}.${fileExtension}`);
 
-      // Formatiere Zeiten für FFmpeg (HH:MM:SS.mmm)
       const formatTime = (seconds) =>
       {
         const hours = Math.floor(seconds / 3600);
@@ -245,12 +239,10 @@ const videoService = {
 
       if (audioOnly)
       {
-        // Für Audio-only: Extrahiere als MP3 mit hoher Qualität
         command = `ffmpeg -i "${inputFile}" -ss ${startTimeFormatted} -t ${duration} -vn -c:a libmp3lame -q:a 2 "${outputFile}"`;
         console.log(`Extracting audio segment: ${startTime}s to ${endTime}s from ${path.basename(inputFile)}`);
       } else
       {
-        // Für Video: Behalte bisherigen Befehl bei
         command = `ffmpeg -i "${inputFile}" -ss ${startTimeFormatted} -t ${duration} -c:v libx264 -crf 18 -preset medium -c:a aac -b:a 192k -movflags +faststart "${outputFile}"`;
         console.log(`Extracting video segment: ${startTime}s to ${endTime}s from ${path.basename(inputFile)}`);
       }
@@ -259,7 +251,6 @@ const videoService = {
 
       console.log(`Segment extraction completed: ${outputFile}`);
 
-      // Bei Audio-Segmenten Dateiinfos anzeigen
       if (audioOnly)
       {
         const fileStats = await fsPromises.stat(outputFile);
@@ -295,7 +286,6 @@ const videoService = {
   {
     try
     {
-      // Bestimme Dateierweiterung und -pfad basierend auf dem audioOnly-Parameter
       const fileExtension = audioOnly ? "mp3" : "mp4";
       const outputName = `${jobId}_merged`;
       const outputFile = path.join(DOWNLOAD_DIR, `${outputName}.${fileExtension}`);
@@ -303,8 +293,6 @@ const videoService = {
       console.log(`Creating compilation to: ${outputFile}`);
       console.log(`Input files (${segmentFiles.length}): ${segmentFiles.join(', ')}`);
 
-      // Erstelle ein Array mit temporären Kopien der Segmentdateien, um die Originale zu erhalten
-      // Auch in Fällen, in denen FFMPEG die Eingabedateien modifizieren könnte
       const tempSegmentFiles = [];
 
       try
@@ -313,56 +301,45 @@ const videoService = {
         {
           const originalFile = segmentFiles[i];
           const tempFile = path.join(DOWNLOAD_DIR, `temp_${path.basename(originalFile)}`);
-
-          // Datei kopieren
           await fsPromises.copyFile(originalFile, tempFile);
           tempSegmentFiles.push(tempFile);
           console.log(`Created temporary copy: ${tempFile}`);
         }
 
-        // Erstelle temporäre Datei mit der Liste der zu verbindenden Dateien
-        // Verwende einen eindeutigen Namen basierend auf jobId und Zeitstempel
         const timestamp = Date.now();
         const fileListPath = path.join(DOWNLOAD_DIR, `${outputName}_filelist_${timestamp}.txt`);
         const fileListContent = tempSegmentFiles.map(file => `file '${file}'`).join('\n');
         await fsPromises.writeFile(fileListPath, fileListContent);
         console.log(`Created file list with ${tempSegmentFiles.length} segments at ${fileListPath}`);
 
-        // FFmpeg-Befehl zum Zusammenfügen der Dateien mit der Concat-Demuxer-Methode
         const command = `ffmpeg -f concat -safe 0 -i "${fileListPath}" -c copy "${outputFile}"`;
 
         console.log(`Running FFmpeg command: ${command}`);
         const { stdout, stderr } = await execAsync(command);
 
-        // Logs für Debugging
         if (stdout) console.log(`FFmpeg stdout: ${stdout}`);
         if (stderr) console.log(`FFmpeg stderr: ${stderr}`);
 
-        // Lösche die temporäre Filelist-Datei
         await fsPromises.unlink(fileListPath)
           .catch(err => console.error(`Error deleting file list: ${err.message}`));
 
-        // Lösche die temporären Kopien der Segmentdateien
         for (const tempFile of tempSegmentFiles)
         {
           await fsPromises.unlink(tempFile)
             .catch(err => console.error(`Error deleting temp file ${tempFile}: ${err.message}`));
         }
 
-        // Überprüfe, ob die Ausgabedatei existiert
         if (!fs.existsSync(outputFile))
         {
           throw new Error(`Output file was not created: ${outputFile}`);
         }
 
-        // Dateigröße ausgeben
         const fileStats = await fsPromises.stat(outputFile);
         console.log(`Compilation created successfully: ${outputFile}, size: ${(fileStats.size / (1024 * 1024)).toFixed(2)} MB`);
 
         return outputFile;
       } finally
       {
-        // Stellen wir sicher, dass temporäre Dateien in jedem Fall gelöscht werden
         for (const tempFile of tempSegmentFiles)
         {
           if (fs.existsSync(tempFile))

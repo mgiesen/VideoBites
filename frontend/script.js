@@ -169,7 +169,6 @@ function addSegment(isFirstElement = false)
 {
     const segmentIndex = document.querySelectorAll('.segment-item').length;
     const maxDuration = currentVideoInfo ? currentVideoInfo.duration : 600;
-    // Only show delete button if it's NOT the first segment
     const deleteIcon = !isFirstElement ? '<button type="button" class="btn btn-sm btn-light remove-segment-btn" aria-label="Delete"><i class="fas fa-trash-alt"></i></button>' : '';
 
     const segmentHtml = `
@@ -214,7 +213,6 @@ function addSegment(isFirstElement = false)
     segmentsContainer.insertAdjacentHTML('beforeend', segmentHtml);
     const newSegment = segmentsContainer.lastElementChild;
 
-    // Only add event listener if the delete button exists
     const removeBtn = newSegment.querySelector('.remove-segment-btn');
     if (removeBtn)
     {
@@ -232,51 +230,37 @@ function addSegment(isFirstElement = false)
 
     updateSegmentDuration(parseInt(startTimeInput.value), parseInt(endTimeInput.value), durationSpan);
 
-    // Function to parse time input (format: HH:MM:SS or MM:SS)
     function parseTimeInput(timeStr)
     {
         const parts = timeStr.split(':').map(part => parseInt(part) || 0);
         if (parts.length === 3)
         {
-            // HH:MM:SS format
             return parts[0] * 3600 + parts[1] * 60 + parts[2];
         } else if (parts.length === 2)
         {
-            // MM:SS format
             return parts[0] * 60 + parts[1];
         }
         return 0;
     }
 
-    // Function to update all UI elements with new time values
     function updateTimeUI(start, end)
     {
-        // Update slider values
         startTimeInput.value = start;
         endTimeInput.value = end;
-
-        // Update text input values
         startTimeTextInput.value = formatTime(start);
         endTimeTextInput.value = formatTime(end);
-
-        // Update duration display
         updateSegmentDuration(start, end, durationSpan);
     }
 
-    // Function to handle time changes with validation
     function handleTimeChange(newStart, newEnd)
     {
         const maxDuration = parseInt(endTimeInput.max);
         const minDuration = 1;
-
-        // Validate boundaries
         newStart = Math.max(0, Math.min(newStart, maxDuration - minDuration));
         newEnd = Math.max(newStart + minDuration, Math.min(newEnd, maxDuration));
-
         updateTimeUI(newStart, newEnd);
     }
 
-    // Start time slider handler
     startTimeInput.addEventListener('input', () =>
     {
         let start = parseInt(startTimeInput.value);
@@ -284,40 +268,33 @@ function addSegment(isFirstElement = false)
         const minDuration = 1;
         const maxDuration = parseInt(endTimeInput.max);
 
-        // If start time is being pushed beyond end time - minDuration
         if (start > end - minDuration)
         {
-            // Push the end time forward
             end = Math.min(start + minDuration, maxDuration);
         }
 
         updateTimeUI(start, end);
     });
 
-    // End time slider handler
     endTimeInput.addEventListener('input', () =>
     {
         let start = parseInt(startTimeInput.value);
         let end = parseInt(endTimeInput.value);
         const minDuration = 1;
 
-        // Ensure end time is at least minDuration
         if (end < minDuration)
         {
             end = minDuration;
         }
 
-        // If end time is being pulled below start time + minDuration
         if (end < start + minDuration)
         {
-            // Pull the start time backward
             start = Math.max(end - minDuration, 0);
         }
 
         updateTimeUI(start, end);
     });
 
-    // Text input handlers
     startTimeTextInput.addEventListener('change', () =>
     {
         const inputTime = parseTimeInput(startTimeTextInput.value);
@@ -332,7 +309,6 @@ function addSegment(isFirstElement = false)
         handleTimeChange(currentStart, inputTime);
     });
 
-    // Stepper button handlers
     const decreaseStartBtn = newSegment.querySelector('[data-action="decrease-start"]');
     const increaseStartBtn = newSegment.querySelector('[data-action="increase-start"]');
     const decreaseEndBtn = newSegment.querySelector('[data-action="decrease-end"]');
@@ -473,7 +449,6 @@ async function extractSegments()
     enterExtractionMode();
     updateSegmentsToLoadingState();
 
-    // Prüfe den Zustand der Merge-Checkbox
     const mergeSegmentsEnabled = mergeSegmentsCheck.checked;
 
     try
@@ -521,7 +496,6 @@ function updateSegmentsToLoadingState()
 {
     segmentsContainer.innerHTML = '';
 
-    // Ladezustand für einzelne Segmente
     currentSegments.forEach((segment, index) =>
     {
         const duration = segment.end - segment.start;
@@ -545,11 +519,10 @@ function updateSegmentsToLoadingState()
         segmentsContainer.insertAdjacentHTML('beforeend', loadingSegmentHtml);
     });
 
-    // Wenn Zusammenfassung aktiviert ist, füge Ladezustand in mergedSegmentCard hinzu
     if (mergeSegmentsCheck.checked && currentSegments.length > 1)
     {
         const totalDuration = currentSegments.reduce((total, segment) => total + (segment.end - segment.start), 0);
-        mergedSegmentCard.style.display = 'block'; // Card sichtbar machen
+        mergedSegmentCard.style.display = 'block';
         mergedSegmentContainer.innerHTML = `
             <div class="segment-item segment-loading segment-merged" data-merged="true">
                 <div class="spinner-container">
@@ -623,7 +596,7 @@ function updateMergedSegmentToReadyState(result)
 
     mergedSegmentContainer.querySelector('.play-btn').addEventListener('click', function ()
     {
-        playVideo(currentSegments.length); // Index für den Zusammenschnitt
+        playVideo(currentSegments.length);
     });
 }
 
@@ -665,11 +638,12 @@ function updateCompletedSegments(results)
             if (result.filePath)
             {
                 updateMergedSegmentToReadyState(result);
+                completedSegments.push({ index: currentSegments.length, type: result.type });
             }
         }
-        else if (!completedSegments.includes(index))
+        else if (!completedSegments.some(seg => seg.index === index))
         {
-            completedSegments.push(index);
+            completedSegments.push({ index, type: result.type });
             updateSegmentToReadyState(index, result.filePath);
         }
     });
@@ -685,34 +659,96 @@ function handleCompletedJob(status)
 
 function playVideo(index)
 {
-    const isMerged = index === currentSegments.length;
+    const segmentInfo = completedSegments.find(seg => seg.index === index);
+    if (!segmentInfo) return;
+
+    const isAudio = segmentInfo.type === "audio";
     const streamUrl = `${API_BASE_URL}/stream/${currentJobId}/${index}`;
     const downloadUrl = `${API_BASE_URL}/download/${currentJobId}/${index}`;
-    videoPlayer.src = streamUrl;
-    videoDownloadBtn.href = downloadUrl;
 
-    const videoModalEl = document.getElementById('videoPlayerModal');
+    const videoModalEl = document.getElementById("videoPlayerModal");
     const videoModal = new bootstrap.Modal(videoModalEl);
-    videoModal.show();
 
-    if (!isMerged)
+    const videoPlayer = document.getElementById("videoPlayer");
+
+    if (isAudio)
     {
-        const segment = currentSegments[index];
-        document.getElementById('videoPlayerModalLabel').textContent =
-            `Segment ${index + 1}: ${formatTime(segment.start)} - ${formatTime(segment.end)}`;
-    } else
-    {
-        document.getElementById('videoPlayerModalLabel').textContent = 'Zusammenschnitt aller Segmente';
+        videoPlayer.src = "";
+        videoPlayer.style.display = "none";
+
+        let audioPlayer = document.getElementById("audioPlayer");
+        if (!audioPlayer)
+        {
+            audioPlayer = document.createElement("audio");
+            audioPlayer.id = "audioPlayer";
+            audioPlayer.controls = true;
+            audioPlayer.className = "w-100";
+            videoModalEl.querySelector(".modal-body").appendChild(audioPlayer);
+        }
+        else
+        {
+            audioPlayer.style.display = "block";
+        }
+        audioPlayer.src = streamUrl;
+
+        videoDownloadBtn.href = downloadUrl;
+        videoModal.show();
+
+        const isMerged = index === currentSegments.length;
+        if (!isMerged)
+        {
+            const segment = currentSegments[index];
+            document.getElementById("videoPlayerModalLabel").textContent =
+                `Audio-Segment ${index + 1}: ${formatTime(segment.start)} - ${formatTime(segment.end)}`;
+        }
+        else
+        {
+            document.getElementById("videoPlayerModalLabel").textContent =
+                "Zusammenschnitt aller Audio-Segmente";
+        }
+
+        videoModalEl.addEventListener("shown.bs.modal", function ()
+        {
+            audioPlayer.play().catch(error => console.error("Audio playback error:", error));
+        });
+        videoModalEl.addEventListener("hidden.bs.modal", function ()
+        {
+            audioPlayer.pause();
+        });
     }
+    else
+    {
+        videoPlayer.src = streamUrl;
+        videoPlayer.style.display = "block";
 
-    videoModalEl.addEventListener('shown.bs.modal', function ()
-    {
-        videoPlayer.play().catch(error => console.error('Video playback error:', error));
-    });
-    videoModalEl.addEventListener('hidden.bs.modal', function ()
-    {
-        videoPlayer.pause();
-    });
+        const audioPlayer = document.getElementById("audioPlayer");
+        if (audioPlayer) audioPlayer.style.display = "none";
+
+        videoDownloadBtn.href = downloadUrl;
+        videoModal.show();
+
+        const isMerged = index === currentSegments.length;
+        if (!isMerged)
+        {
+            const segment = currentSegments[index];
+            document.getElementById("videoPlayerModalLabel").textContent =
+                `Segment ${index + 1}: ${formatTime(segment.start)} - ${formatTime(segment.end)}`;
+        }
+        else
+        {
+            document.getElementById("videoPlayerModalLabel").textContent =
+                "Zusammenschnitt aller Segmente";
+        }
+
+        videoModalEl.addEventListener("shown.bs.modal", function ()
+        {
+            videoPlayer.play().catch(error => console.error("Video playback error:", error));
+        });
+        videoModalEl.addEventListener("hidden.bs.modal", function ()
+        {
+            videoPlayer.pause();
+        });
+    }
 }
 
 function formatTime(seconds)
