@@ -220,6 +220,7 @@ header .text-primary {
 .segment-actions {
 	display: flex;
 	align-items: center;
+	gap: 0.5rem;
 }
 
 .btn-video {
@@ -233,6 +234,7 @@ header .text-primary {
 	align-items: center;
 	justify-content: center;
 	transition: var(--transition);
+	cursor: pointer;
 }
 
 .btn-video:hover {
@@ -279,7 +281,7 @@ header .text-primary {
 	}
 
 	.segment-actions {
-		width: 100%;
+		margin-top: 1rem;
 		justify-content: flex-end;
 	}
 }

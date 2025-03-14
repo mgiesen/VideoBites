@@ -561,6 +561,90 @@ function updateSegmentsToLoadingState()
     }
 }
 
+async function previewDocumentation()
+{
+    try
+    {
+        const response = await fetch(`${API_BASE_URL}/documentation/${currentJobId}`);
+        if (!response.ok)
+        {
+            throw new Error('Dokumentation konnte nicht abgerufen werden');
+        }
+
+        const documentation = await response.json();
+
+        // Modal für die Vorschau erstellen, falls es noch nicht existiert
+        let jsonModalEl = document.getElementById('jsonPreviewModal');
+        if (!jsonModalEl)
+        {
+            jsonModalEl = document.createElement('div');
+            jsonModalEl.id = 'jsonPreviewModal';
+            jsonModalEl.className = 'modal fade';
+            jsonModalEl.setAttribute('tabindex', '-1');
+            jsonModalEl.setAttribute('aria-labelledby', 'jsonPreviewModalLabel');
+            jsonModalEl.setAttribute('aria-hidden', 'true');
+
+            jsonModalEl.innerHTML = `
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="jsonPreviewModalLabel">Quellendokumentation Vorschau</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <pre id="jsonPreviewContent" class="bg-light p-3 rounded" style="max-height: 70vh; overflow: auto;"></pre>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+                            <button type="button" class="btn btn-primary" id="jsonDownloadBtn">
+                                <i class="fas fa-download me-1"></i> Herunterladen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(jsonModalEl);
+
+            // Download-Button im Modal
+            document.getElementById('jsonDownloadBtn').addEventListener('click', function ()
+            {
+                downloadDocumentation();
+            });
+        }
+
+        // JSON in das Modal einfügen und formatieren
+        document.getElementById('jsonPreviewContent').textContent = JSON.stringify(documentation, null, 2);
+
+        // Modal anzeigen
+        const jsonModal = new bootstrap.Modal(jsonModalEl);
+        jsonModal.show();
+
+    } catch (error)
+    {
+        console.error('Fehler beim Laden der Dokumentation:', error);
+        showToast('error', 'Fehler beim Laden der Dokumentation');
+    }
+}
+
+async function directDownload(index)
+{
+    const segmentInfo = completedSegments.find(seg => seg.index === index);
+    if (!segmentInfo) return;
+
+    const downloadUrl = `${API_BASE_URL}/download/${currentJobId}/${index}`;
+
+    // Erstelle einen temporären Link und klicke ihn automatisch
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = '';  // Server liefert den Dateinamen
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    showToast('info', 'Download gestartet');
+}
+
 function updateSegmentToReadyState(index, filePath)
 {
     const segment = currentSegments[index];
@@ -579,14 +663,25 @@ function updateSegmentToReadyState(index, filePath)
                 </p>
             </div>
             <div class="segment-actions">
-                <button class="btn-video play-btn" data-index="${index}">
+                <button class="btn-video play-btn me-2" data-index="${index}" title="Abspielen">
                     <i class="fas fa-play"></i>
+                </button>
+                <button class="btn-video download-btn" data-index="${index}" title="Herunterladen">
+                    <i class="fas fa-download"></i>
                 </button>
             </div>
         `;
+
+        // Play-Button Event Listener
         segmentElement.querySelector('.play-btn').addEventListener('click', function ()
         {
             playVideo(index);
+        });
+
+        // Download-Button Event Listener
+        segmentElement.querySelector('.download-btn').addEventListener('click', function ()
+        {
+            directDownload(index);
         });
     }
 }
@@ -606,16 +701,26 @@ function updateMergedSegmentToReadyState(result)
                 </p>
             </div>
             <div class="segment-actions">
-                <button class="btn-video play-btn" data-merged="true">
+                <button class="btn-video play-btn me-2" data-merged="true" title="Abspielen">
                     <i class="fas fa-play"></i>
+                </button>
+                <button class="btn-video download-btn" data-merged="true" title="Herunterladen">
+                    <i class="fas fa-download"></i>
                 </button>
             </div>
         </div>
     `;
 
+    // Play-Button Event Listener
     mergedSegmentContainer.querySelector('.play-btn').addEventListener('click', function ()
     {
         playVideo(currentSegments.length);
+    });
+
+    // Download-Button Event Listener
+    mergedSegmentContainer.querySelector('.download-btn').addEventListener('click', function ()
+    {
+        directDownload(currentSegments.length);
     });
 }
 
@@ -624,25 +729,34 @@ function updateDocumentationToReadyState()
     const docElement = document.getElementById('documentation-segment');
     if (docElement)
     {
-        // Klasse zu "segment-ready" geändert (entfernt segment-documentation)
         docElement.className = 'segment-item segment-ready';
         docElement.innerHTML = `
             <div class="segment-info">
                 <h6 class="mb-1">Quellendokumentation</h6>
                 <p class="mb-0 text-muted">
-                    Metadaten und Segmentinformationen
+                    Enthält umfassende Metadaten und Segmentinformationen
                 </p>
             </div>
             <div class="segment-actions">
-                <button class="btn-video download-btn" id="downloadDocBtn">
+                <button class="btn-video preview-btn me-2" id="previewDocBtn" title="Vorschau">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn-video download-btn" id="downloadDocBtn" title="Herunterladen">
                     <i class="fas fa-download"></i>
                 </button>
             </div>
         `;
 
+        // Download-Button Event Listener
         document.getElementById('downloadDocBtn').addEventListener('click', function ()
         {
             downloadDocumentation();
+        });
+
+        // Vorschau-Button Event Listener
+        document.getElementById('previewDocBtn').addEventListener('click', function ()
+        {
+            previewDocumentation();
         });
     }
 }
