@@ -21,6 +21,7 @@ const videoViews = document.getElementById('videoViews');
 const qualityCard = document.getElementById('qualityCard');
 const qualitySelect = document.getElementById('qualitySelect');
 const mergeSegmentsCheck = document.getElementById('mergeSegmentsCheck');
+const createDocCheck = document.getElementById('createDocCheck');
 const segmentsCard = document.getElementById('segmentsCard');
 const segmentsHeader = document.getElementById('segmentsHeader');
 const addSegmentBtn = document.getElementById('addSegmentBtn');
@@ -457,7 +458,8 @@ async function extractSegments()
             url: videoUrlInput.value.trim(),
             segments: segments,
             quality: qualitySelect.value,
-            mergeSegments: mergeSegmentsEnabled
+            mergeSegments: mergeSegmentsCheck.checked,
+            createDocumentation: createDocCheck.checked
         });
         currentJobId = extractResponse.jobId;
         startStatusPolling(currentJobId);
@@ -476,6 +478,7 @@ function enterExtractionMode()
     extractBtnContainer.style.display = 'none';
     qualitySelect.disabled = true;
     mergeSegmentsCheck.disabled = true;
+    createDocCheck.disabled = true;
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'none');
     document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = true);
 }
@@ -488,6 +491,7 @@ function exitExtractionMode()
     extractBtnContainer.style.display = 'block';
     qualitySelect.disabled = false;
     mergeSegmentsCheck.disabled = false;
+    createDocCheck.disabled = false;
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'block');
     document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = false);
 }
@@ -518,6 +522,27 @@ function updateSegmentsToLoadingState()
         `;
         segmentsContainer.insertAdjacentHTML('beforeend', loadingSegmentHtml);
     });
+
+    // Zeige Dokumentations-Segment, wenn Option aktiviert ist
+    if (createDocCheck.checked)
+    {
+        const docSegmentHtml = `
+            <div class="segment-item segment-loading segment-documentation">
+                <div class="spinner-container">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Lädt...</span>
+                    </div>
+                    <p class="spinner-text mb-0">Quellendokumentation wird erstellt...</p>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Metadaten und Segmentinformationen
+                        </small>
+                    </div>
+                </div>
+            </div>
+        `;
+        segmentsContainer.insertAdjacentHTML('beforeend', docSegmentHtml);
+    }
 
     if (mergeSegmentsCheck.checked && currentSegments.length > 1)
     {
@@ -600,6 +625,63 @@ function updateMergedSegmentToReadyState(result)
     });
 }
 
+function updateDocumentationToReadyState()
+{
+    const docElement = document.querySelector('.segment-documentation');
+    if (docElement)
+    {
+        docElement.className = 'segment-item segment-ready segment-documentation';
+        docElement.innerHTML = `
+            <div class="segment-info">
+                <h6 class="mb-1">Quellendokumentation</h6>
+                <p class="mb-0 text-muted">
+                    Metadaten und Segmentinformationen
+                </p>
+            </div>
+            <div class="segment-actions">
+                <button class="btn-video download-btn" id="downloadDocBtn">
+                    <i class="fas fa-download"></i>
+                </button>
+            </div>
+        `;
+
+        document.getElementById('downloadDocBtn').addEventListener('click', function ()
+        {
+            downloadDocumentation();
+        });
+    }
+}
+
+async function downloadDocumentation()
+{
+    try
+    {
+        const response = await fetch(`${API_BASE_URL}/documentation/${currentJobId}`);
+        if (!response.ok)
+        {
+            throw new Error('Dokumentation konnte nicht abgerufen werden');
+        }
+
+        const documentation = await response.json();
+        const blob = new Blob([JSON.stringify(documentation, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `videobites_dokumentation_${documentation.videoInfo.id}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast('success', 'Dokumentation heruntergeladen');
+    } catch (error)
+    {
+        console.error('Fehler beim Herunterladen der Dokumentation:', error);
+        showToast('error', 'Fehler beim Herunterladen der Dokumentation');
+    }
+}
+
 function startStatusPolling(jobId)
 {
     if (statusCheckInterval) clearInterval(statusCheckInterval);
@@ -653,6 +735,13 @@ function handleCompletedJob(status)
 {
     clearInterval(statusCheckInterval);
     if (status.result && Array.isArray(status.result)) updateCompletedSegments(status.result);
+
+    // Prüfen, ob Dokumentation verfügbar ist
+    if (status.documentation)
+    {
+        updateDocumentationToReadyState();
+    }
+
     newExtractionContainer.style.display = 'block';
     showToast('success', 'Alle Segmente wurden erfolgreich extrahiert');
 }

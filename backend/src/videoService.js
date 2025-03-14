@@ -80,7 +80,7 @@ const videoService = {
    * @param {boolean} mergeSegments - Ob die Segmente zu einer Datei zusammengefügt werden sollen
    * @returns {Promise<Array<{segment: {start: number, end: number}, filePath: string}>>} - Ergebnisse
    */
-  async processVideo(url, segments, quality = "720", mergeSegments = false, job)
+  async processVideo(url, segments, quality = "720", mergeSegments = false, job, createDocumentation = false)
   {
     if (!job) throw new Error('Job not provided');
 
@@ -127,6 +127,14 @@ const videoService = {
         });
       }
 
+      // Erstelle Dokumentation, wenn Option aktiviert ist
+      if (createDocumentation)
+      {
+        const videoInfo = await this.getVideoInfo(url);
+        const documentation = await this.createDocumentation(videoInfo, segments, job.result, job.id);
+        job.documentation = documentation;
+      }
+
       job.status = 'completed';
       job.completedAt = new Date();
     } catch (error)
@@ -143,6 +151,63 @@ const videoService = {
           .then(() => console.log(`Deleted downloaded file ${downloadedFile}`))
           .catch(err => console.error(`Error deleting file ${downloadedFile}: ${err.message}`));
       }
+    }
+  },
+
+  async createDocumentation(videoInfo, segments, results, jobId)
+  {
+    try
+    {
+      // Erstelle eine neue JSON-Struktur mit allen relevanten Metadaten
+      const documentation = {
+        videoInfo: {
+          id: videoInfo.id,
+          title: videoInfo.title,
+          uploader: videoInfo.uploader,
+          uploadDate: videoInfo.upload_date,
+          duration: videoInfo.duration,
+          viewCount: videoInfo.view_count,
+          url: videoInfo.original_url,
+          channelUrl: videoInfo.channel_url,
+          description: videoInfo.description,
+          categories: videoInfo.categories || [],
+          tags: videoInfo.tags || [],
+          resolution: videoInfo.resolution,
+          language: videoInfo.language,
+        },
+        segments: segments.map((segment, index) =>
+        {
+          const result = results.find(r =>
+            !r.segment.isMerged &&
+            r.segment.start === segment.start &&
+            r.segment.end === segment.end
+          );
+          return {
+            start: segment.start,
+            end: segment.end,
+            duration: segment.end - segment.start,
+            fileName: result ? path.basename(result.filePath) : null
+          };
+        }),
+        extractedAt: new Date().toISOString(),
+        jobId
+      };
+
+      // Füge Informationen zum zusammengeführten Segment hinzu, falls vorhanden
+      const mergedResult = results.find(r => r.segment && r.segment.isMerged);
+      if (mergedResult)
+      {
+        documentation.mergedSegment = {
+          fileName: path.basename(mergedResult.filePath),
+          duration: mergedResult.segment.end - mergedResult.segment.start
+        };
+      }
+
+      return documentation;
+    } catch (error)
+    {
+      console.error(`Error creating documentation: ${error.message}`);
+      throw new Error('Failed to create documentation');
     }
   },
 

@@ -173,6 +173,23 @@ header .text-primary {
 	margin-left: 0.5rem;
 }
 
+/* Dokumentations-Segment Styling */
+.segment-documentation {
+	border-left: 4px solid #17a2b8;
+	background-color: rgba(23, 162, 184, 0.1);
+}
+
+.download-btn {
+	color: #17a2b8;
+	background-color: white;
+	border: 1px solid #17a2b8;
+}
+
+.download-btn:hover {
+	background-color: #17a2b8;
+	color: white;
+}
+
 /* Loading State */
 .segment-loading {
 	display: flex;

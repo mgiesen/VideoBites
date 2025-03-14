@@ -17,6 +17,7 @@ Die Anwendung ist besonders nützlich für:
 - **Qualitätsauswahl** - Wähle zwischen verschiedenen Videoqualitäten (144p bis 4K)
 - **Audio-Modus** - Möglichkeit, nur den Audiokanal zu extrahieren
 - **Download-Option** - Speichere die Ausschnitte auf deinem Gerät
+- **Quellendokumentation** - Erstelle automatisch eine JSON-Datei mit umfassenden Metadaten und Segmentinformationen
 - **Vollständige API** - Alle Funktionen sind auch programmatisch über die API zugänglich
 
 ## Rechtliche Hinweise
@@ -48,9 +49,19 @@ Die Nutzung von VideoBites muss im Einklang mit den Urheber- und Nutzungsrechten
 
 1. **Video auswählen**: Gib eine YouTube-URL ein und klicke auf "Prüfen".
 2. **Qualität wählen**: Wähle die gewünschte Videoqualität aus dem Dropdown-Menü.
-3. **Segmente definieren**: Füge beliebig viele Zeitabschnitte hinzu, indem du Start- und Endzeiten festlegst. Aktiviere die Option "Zusammenschnitt erstellen", um alle Segmente zu einer Datei zusammenzufügen.
-4. **Extrahieren**: Klicke auf "Segmente extrahieren", um den Prozess zu starten.
-5. **Vorschau & Download**: Wenn die Extraktion abgeschlossen ist, kannst du die Segmente ansehen und herunterladen.
+3. **Optionen aktivieren**: Optional "Zusammenschnitt erstellen" und/oder "Quellendokumentation erstellen" aktivieren.
+4. **Segmente definieren**: Füge beliebig viele Zeitabschnitte hinzu, indem du Start- und Endzeiten festlegst.
+5. **Extrahieren**: Klicke auf "Segmente extrahieren", um den Prozess zu starten.
+6. **Vorschau & Download**: Wenn die Extraktion abgeschlossen ist, kannst du die Segmente ansehen und herunterladen. Bei aktivierter Quellendokumentation steht diese ebenfalls zum Download bereit.
+
+## Quellendokumentation
+
+Die Quellendokumentation ermöglicht eine vollständige Nachverfolgung der extrahierten Inhalte:
+
+- Enthält umfassende Video-Metadaten (Titel, Kanal, Beschreibung, Tags, Kategorien, Sprache)
+- Speichert genaue Zeitmarken und Dateinamen aller Segmente
+- Erleichtert korrekte Quellenangaben und Zitationen
+- Wird als JSON-Datei bereitgestellt
 
 ## API Dokumentation
 
@@ -71,14 +82,6 @@ Content-Type: application/json
 }
 ```
 
-**Response**
-
-```json
-{
-	"valid": true
-}
-```
-
 ### 2. Video-Informationen abrufen
 
 Ruft Metadaten über das Video ab.
@@ -91,21 +94,6 @@ Content-Type: application/json
 
 {
   "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-}
-```
-
-**Response**
-
-```json
-{
-  "id": "dQw4w9WgXcQ",
-  "title": "Rick Astley - Never Gonna Give You Up (Official Music Video)",
-  "duration": 212,
-  "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
-  "uploader": "Rick Astley",
-  "upload_date": "20091025",
-  "view_count": 1234567890,
-  ...
 }
 ```
 
@@ -126,49 +114,17 @@ Content-Type: application/json
     { "start": 30, "end": 40 }
   ],
   "quality": "720",
-  "mergeSegments": true
+  "mergeSegments": true,
+  "createDocumentation": true
 }
 ```
 
-**Unterstützte Qualitätsoptionen:**
+### 4. Dokumentation abrufen
 
-- "144" - 144p
-- "240" - 240p
-- "360" - 360p
-- "480" - 480p
-- "720" - 720p (Standard)
-- "1080" - 1080p (Full HD)
-- "1440" - 1440p (2K)
-- "2160" - 2160p (4K)
-- "audio" - Nur Audio
+Liefert die generierte Quellendokumentation für einen abgeschlossenen Job.
 
-## Architektur
+**Request**
 
-VideoBites besteht aus zwei Hauptkomponenten:
-
-1. **Backend**: Node.js-Server mit Express, der die API-Endpoints bereitstellt und die Videobearbeitung übernimmt.
-2. **Frontend**: Benutzerfreundliche Weboberfläche, die von einem Nginx-Server bereitgestellt wird.
-
-Beide Komponenten werden in Docker-Containern ausgeführt und über Docker Compose orchestriert.
-
-## Systemanforderungen
-
-- Docker und Docker Compose
-- Internetverbindung für den Zugriff auf YouTube
-
-## Eingesetzte Tools
-
-VideoBites läuft in einem Docker-Container und verwendet folgende Systemwerkzeuge:
-
-- **yt-dlp** – Zum Herunterladen und Verarbeiten von YouTube-Videos.
-- **ffmpeg** – Zur Bearbeitung und Extraktion von Videoabschnitten.
-- **nginx** – Bereitstellung der Weboberfläche und API-Proxy.
-
-## Fehlerbehebung
-
-- **Extraktionsfehler**: Stelle sicher, dass das Video nicht altersbeschränkt oder regional gesperrt ist.
-- **Lange Ladezeiten**: Die Verarbeitung großer Videos oder vieler Segmente kann einige Zeit in Anspruch nehmen.
-
-## Beitragen
-
-Beiträge zum Projekt sind willkommen! Bitte erstelle einen Fork des Repositories und reiche Pull Requests ein.
+```http
+GET http://localhost:3000/api/documentation/{jobId}
+```

@@ -55,7 +55,7 @@ router.post('/extract', async (req, res) =>
 {
   try
   {
-    const { url, segments, quality, mergeSegments } = req.body;
+    const { url, segments, quality, mergeSegments, createDocumentation } = req.body;
 
     if (!url)
     {
@@ -78,7 +78,8 @@ router.post('/extract', async (req, res) =>
       segments,
       quality: videoQuality,
       mergeSegments: !!mergeSegments,
-      status: 'processing', // Initialstatus auf 'processing'
+      createDocumentation: !!createDocumentation,
+      status: 'processing',
       result: [],
       error: null,
       createdAt: new Date()
@@ -86,7 +87,7 @@ router.post('/extract', async (req, res) =>
     jobs.set(jobId, job);
 
     // Verarbeitung starten und Job-Objekt übergeben
-    videoService.processVideo(url, segments, videoQuality, !!mergeSegments, job).catch(error =>
+    videoService.processVideo(url, segments, videoQuality, !!mergeSegments, job, !!createDocumentation).catch(error =>
     {
       console.error('Error in processVideo:', error);
       job.status = 'failed';
@@ -231,6 +232,32 @@ router.get('/stream/:jobId/:segmentIndex', (req, res) =>
 
     fs.createReadStream(filePath).pipe(res);
   }
+});
+
+// Dokumentation abrufen
+router.get('/documentation/:jobId', (req, res) =>
+{
+  const { jobId } = req.params;
+
+  const job = jobs.get(jobId);
+
+  if (!job)
+  {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  if (job.status !== 'completed')
+  {
+    return res.status(400).json({ error: 'Job not completed yet' });
+  }
+
+  if (!job.documentation)
+  {
+    return res.status(404).json({ error: 'Documentation not found' });
+  }
+
+  // Dokumentation als JSON zurückgeben
+  return res.json(job.documentation);
 });
 
 module.exports = router;
