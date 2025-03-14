@@ -475,13 +475,12 @@ async function extractSegments()
 function enterExtractionMode()
 {
     urlCard.style.display = 'none';
+    qualityCard.style.display = 'none';
+
     segmentsHeader.style.display = 'none';
     addSegmentBtn.style.display = 'none';
     extractBtnContainer.style.display = 'none';
-    qualitySelect.disabled = true;
-    mergeSegmentsCheck.disabled = true;
-    createDocCheck.disabled = true;
-    parallelExtractionCheck.disabled = true;
+
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'none');
     document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = true);
 }
@@ -489,13 +488,12 @@ function enterExtractionMode()
 function exitExtractionMode()
 {
     urlCard.style.display = 'block';
+    qualityCard.style.display = 'block';
+
     segmentsHeader.style.display = 'flex';
     addSegmentBtn.style.display = 'block';
     extractBtnContainer.style.display = 'block';
-    qualitySelect.disabled = false;
-    mergeSegmentsCheck.disabled = false;
-    createDocCheck.disabled = false;
-    parallelExtractionCheck.disabled = false;
+
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'block');
     document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = false);
 }
