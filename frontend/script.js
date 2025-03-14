@@ -20,12 +20,15 @@ const videoDuration = document.getElementById('videoDuration');
 const videoViews = document.getElementById('videoViews');
 const qualityCard = document.getElementById('qualityCard');
 const qualitySelect = document.getElementById('qualitySelect');
+const mergeSegmentsCheck = document.getElementById('mergeSegmentsCheck');
 const segmentsCard = document.getElementById('segmentsCard');
 const segmentsHeader = document.getElementById('segmentsHeader');
 const addSegmentBtn = document.getElementById('addSegmentBtn');
 const segmentsContainer = document.getElementById('segmentsContainer');
 const extractBtnContainer = document.getElementById('extractBtnContainer');
 const extractBtn = document.getElementById('extractBtn');
+const mergedSegmentCard = document.getElementById('mergedSegmentCard');
+const mergedSegmentContainer = document.getElementById('mergedSegmentContainer');
 const newExtractionContainer = document.getElementById('newExtractionContainer');
 const newExtractionBtn = document.getElementById('newExtractionBtn');
 const videoPlayerModal = document.getElementById('videoPlayerModal');
@@ -227,11 +230,6 @@ function addSegment(isFirstElement = false)
     const endTimeTextInput = newSegment.querySelector('.end-time-text');
     const durationSpan = newSegment.querySelector('.segment-duration');
 
-    const decreaseStartBtn = newSegment.querySelector('[data-action="decrease-start"]');
-    const increaseStartBtn = newSegment.querySelector('[data-action="increase-start"]');
-    const decreaseEndBtn = newSegment.querySelector('[data-action="decrease-end"]');
-    const increaseEndBtn = newSegment.querySelector('[data-action="increase-end"]');
-
     updateSegmentDuration(parseInt(startTimeInput.value), parseInt(endTimeInput.value), durationSpan);
 
     // Function to parse time input (format: HH:MM:SS or MM:SS)
@@ -335,6 +333,11 @@ function addSegment(isFirstElement = false)
     });
 
     // Stepper button handlers
+    const decreaseStartBtn = newSegment.querySelector('[data-action="decrease-start"]');
+    const increaseStartBtn = newSegment.querySelector('[data-action="increase-start"]');
+    const decreaseEndBtn = newSegment.querySelector('[data-action="decrease-end"]');
+    const increaseEndBtn = newSegment.querySelector('[data-action="increase-end"]');
+
     decreaseStartBtn.addEventListener('click', () =>
     {
         const start = parseInt(startTimeInput.value) - 1;
@@ -470,12 +473,16 @@ async function extractSegments()
     enterExtractionMode();
     updateSegmentsToLoadingState();
 
+    // Prüfe den Zustand der Merge-Checkbox
+    const mergeSegmentsEnabled = mergeSegmentsCheck.checked;
+
     try
     {
         const extractResponse = await callAPI('/extract', 'POST', {
             url: videoUrlInput.value.trim(),
             segments: segments,
-            quality: qualitySelect.value
+            quality: qualitySelect.value,
+            mergeSegments: mergeSegmentsEnabled
         });
         currentJobId = extractResponse.jobId;
         startStatusPolling(currentJobId);
@@ -493,6 +500,7 @@ function enterExtractionMode()
     addSegmentBtn.style.display = 'none';
     extractBtnContainer.style.display = 'none';
     qualitySelect.disabled = true;
+    mergeSegmentsCheck.disabled = true;
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'none');
     document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = true);
 }
@@ -504,6 +512,7 @@ function exitExtractionMode()
     addSegmentBtn.style.display = 'block';
     extractBtnContainer.style.display = 'block';
     qualitySelect.disabled = false;
+    mergeSegmentsCheck.disabled = false;
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'block');
     document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = false);
 }
@@ -511,6 +520,8 @@ function exitExtractionMode()
 function updateSegmentsToLoadingState()
 {
     segmentsContainer.innerHTML = '';
+
+    // Ladezustand für einzelne Segmente
     currentSegments.forEach((segment, index) =>
     {
         const duration = segment.end - segment.start;
@@ -533,6 +544,29 @@ function updateSegmentsToLoadingState()
         `;
         segmentsContainer.insertAdjacentHTML('beforeend', loadingSegmentHtml);
     });
+
+    // Wenn Zusammenfassung aktiviert ist, füge Ladezustand in mergedSegmentCard hinzu
+    if (mergeSegmentsCheck.checked && currentSegments.length > 1)
+    {
+        const totalDuration = currentSegments.reduce((total, segment) => total + (segment.end - segment.start), 0);
+        mergedSegmentCard.style.display = 'block'; // Card sichtbar machen
+        mergedSegmentContainer.innerHTML = `
+            <div class="segment-item segment-loading segment-merged" data-merged="true">
+                <div class="spinner-container">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Lädt...</span>
+                    </div>
+                    <p class="spinner-text mb-0">Zusammenschnitt wird erstellt...</p>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Gesamtdauer: ${formatDuration(totalDuration)} | 
+                            Segmente: ${currentSegments.length}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 }
 
 function updateSegmentToReadyState(index, filePath)
@@ -565,6 +599,34 @@ function updateSegmentToReadyState(index, filePath)
     }
 }
 
+function updateMergedSegmentToReadyState(result)
+{
+    const segment = result.segment;
+    const duration = segment.end - segment.start;
+
+    mergedSegmentContainer.innerHTML = `
+        <div class="segment-item segment-ready segment-merged" data-merged="true">
+            <div class="segment-info">
+                <h6 class="mb-1">Zusammenschnitt aller Segmente</h6>
+                <p class="mb-0 text-muted">
+                    Gesamtdauer: ${formatDuration(duration)} | 
+                    Segmente: ${currentSegments.length}
+                </p>
+            </div>
+            <div class="segment-actions">
+                <button class="btn-video play-btn" data-merged="true">
+                    <i class="fas fa-play"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    mergedSegmentContainer.querySelector('.play-btn').addEventListener('click', function ()
+    {
+        playVideo(currentSegments.length); // Index für den Zusammenschnitt
+    });
+}
+
 function startStatusPolling(jobId)
 {
     if (statusCheckInterval) clearInterval(statusCheckInterval);
@@ -595,9 +657,17 @@ function startStatusPolling(jobId)
 function updateCompletedSegments(results)
 {
     if (!results) return;
+
     results.forEach((result, index) =>
     {
-        if (!completedSegments.includes(index))
+        if (result.segment && result.segment.isMerged)
+        {
+            if (result.filePath)
+            {
+                updateMergedSegmentToReadyState(result);
+            }
+        }
+        else if (!completedSegments.includes(index))
         {
             completedSegments.push(index);
             updateSegmentToReadyState(index, result.filePath);
@@ -615,6 +685,7 @@ function handleCompletedJob(status)
 
 function playVideo(index)
 {
+    const isMerged = index === currentSegments.length;
     const streamUrl = `${API_BASE_URL}/stream/${currentJobId}/${index}`;
     const downloadUrl = `${API_BASE_URL}/download/${currentJobId}/${index}`;
     videoPlayer.src = streamUrl;
@@ -624,9 +695,15 @@ function playVideo(index)
     const videoModal = new bootstrap.Modal(videoModalEl);
     videoModal.show();
 
-    const segment = currentSegments[index];
-    document.getElementById('videoPlayerModalLabel').textContent =
-        `Segment ${index + 1}: ${formatTime(segment.start)} - ${formatTime(segment.end)}`;
+    if (!isMerged)
+    {
+        const segment = currentSegments[index];
+        document.getElementById('videoPlayerModalLabel').textContent =
+            `Segment ${index + 1}: ${formatTime(segment.start)} - ${formatTime(segment.end)}`;
+    } else
+    {
+        document.getElementById('videoPlayerModalLabel').textContent = 'Zusammenschnitt aller Segmente';
+    }
 
     videoModalEl.addEventListener('shown.bs.modal', function ()
     {

@@ -68,6 +68,10 @@
 								<option value="audio">Audio</option>
 							</select>
 						</div>
+						<div class="mb-3 form-check">
+							<input type="checkbox" class="form-check-input" id="mergeSegmentsCheck" />
+							<label class="form-check-label" for="mergeSegmentsCheck">Alle Segmente zu einer Datei zusammenfügen</label>
+						</div>
 					</div>
 				</div>
 
@@ -85,6 +89,16 @@
 					</div>
 					<div class="card-footer py-3" id="extractBtnContainer">
 						<button class="btn btn-primary w-100" id="extractBtn" disabled><i class="fas fa-download me-1"></i> Segmente extrahieren</button>
+					</div>
+				</div>
+
+				<!-- Merged Segment Card (Hidden initially) -->
+				<div class="card mb-4 shadow-sm" id="mergedSegmentCard" style="display: none">
+					<div class="card-body">
+						<h2 class="card-title h5 mb-3">Zusammenschnitt</h2>
+						<div id="mergedSegmentContainer">
+							<!-- Merged segment content will be added here dynamically -->
+						</div>
 					</div>
 				</div>
 

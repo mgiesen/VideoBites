@@ -77,20 +77,23 @@ const videoService = {
    * @param {string} url - YouTube-URL
    * @param {Array<{start: number, end: number}>} segments - Zeitsegmente
    * @param {string} quality - Videoqualität ('144', '240', '360', '480', '720', '1080', '1440', '2160', 'audio')
+   * @param {boolean} mergeSegments - Ob die Segmente zu einer Datei zusammengefügt werden sollen
    * @returns {Promise<Array<{segment: {start: number, end: number}, filePath: string}>>} - Ergebnisse
    */
-  async processVideo(url, segments, quality = "720")
+  async processVideo(url, segments, quality = "720", mergeSegments = false, job)
   {
+    if (!job) throw new Error('Job not provided');
+
+    job.status = 'processing';
+    job.result = [];
+
     let downloadedFile = null;
     try
     {
       const videoId = uuidv4();
       downloadedFile = await this.downloadVideo(url, videoId, quality);
-      const results = [];
 
-      // Prüfen, ob nur Audio gewünscht ist
-      const audioOnly = quality === "audio";
-
+      // Individuelle Segmente verarbeiten
       for (let i = 0; i < segments.length; i++)
       {
         const segment = segments[i];
@@ -100,19 +103,36 @@ const videoService = {
           segment.start,
           segment.end,
           segmentId,
-          audioOnly
+          quality === "audio"
         );
-
-        results.push({
+        job.result.push({
           segment,
           filePath: segmentPath
         });
       }
-      return results;
+
+      // Zusammenschnitt erstellen, falls aktiviert
+      if (mergeSegments && segments.length > 1)
+      {
+        const segmentFiles = job.result.map(r => r.filePath);
+        const mergedFilePath = await this.createCompilation(videoId, segmentFiles, quality === "audio");
+        const totalDuration = segments.reduce((total, seg) => total + (seg.end - seg.start), 0);
+        const startTime = segments[0].start;
+        const endTime = startTime + totalDuration;
+        job.result.push({
+          segment: { start: startTime, end: endTime, isMerged: true },
+          filePath: mergedFilePath
+        });
+      }
+
+      job.status = 'completed';
+      job.completedAt = new Date();
     } catch (error)
     {
       console.error(`Processing error: ${error.message}`);
-      throw new Error(`Failed to process video: ${error.message}`);
+      job.status = 'failed';
+      job.error = error.message;
+      throw error; // Fehler wird im route handler abgefangen
     } finally
     {
       if (downloadedFile)
@@ -261,6 +281,107 @@ const videoService = {
     {
       console.error(`Error extracting segment: ${error.message}`);
       throw new Error(`Failed to extract segment: ${error.message}`);
+    }
+  },
+
+  /**
+   * Erstellt einen separaten Zusammenschnitt aus den vorhandenen Videosegmenten
+   * @param {string} jobId - Die Job-ID
+   * @param {Array<string>} segmentFiles - Pfade zu den Segment-Dateien
+   * @param {boolean} audioOnly - Nur Audio extrahieren (ohne Video)
+   * @returns {Promise<string>} - Pfad zur zusammengefügten Datei
+   */
+  async createCompilation(jobId, segmentFiles, audioOnly = false)
+  {
+    try
+    {
+      // Bestimme Dateierweiterung und -pfad basierend auf dem audioOnly-Parameter
+      const fileExtension = audioOnly ? "mp3" : "mp4";
+      const outputName = `${jobId}_merged`;
+      const outputFile = path.join(DOWNLOAD_DIR, `${outputName}.${fileExtension}`);
+
+      console.log(`Creating compilation to: ${outputFile}`);
+      console.log(`Input files (${segmentFiles.length}): ${segmentFiles.join(', ')}`);
+
+      // Erstelle ein Array mit temporären Kopien der Segmentdateien, um die Originale zu erhalten
+      // Auch in Fällen, in denen FFMPEG die Eingabedateien modifizieren könnte
+      const tempSegmentFiles = [];
+
+      try
+      {
+        for (let i = 0; i < segmentFiles.length; i++)
+        {
+          const originalFile = segmentFiles[i];
+          const tempFile = path.join(DOWNLOAD_DIR, `temp_${path.basename(originalFile)}`);
+
+          // Datei kopieren
+          await fsPromises.copyFile(originalFile, tempFile);
+          tempSegmentFiles.push(tempFile);
+          console.log(`Created temporary copy: ${tempFile}`);
+        }
+
+        // Erstelle temporäre Datei mit der Liste der zu verbindenden Dateien
+        // Verwende einen eindeutigen Namen basierend auf jobId und Zeitstempel
+        const timestamp = Date.now();
+        const fileListPath = path.join(DOWNLOAD_DIR, `${outputName}_filelist_${timestamp}.txt`);
+        const fileListContent = tempSegmentFiles.map(file => `file '${file}'`).join('\n');
+        await fsPromises.writeFile(fileListPath, fileListContent);
+        console.log(`Created file list with ${tempSegmentFiles.length} segments at ${fileListPath}`);
+
+        // FFmpeg-Befehl zum Zusammenfügen der Dateien mit der Concat-Demuxer-Methode
+        const command = `ffmpeg -f concat -safe 0 -i "${fileListPath}" -c copy "${outputFile}"`;
+
+        console.log(`Running FFmpeg command: ${command}`);
+        const { stdout, stderr } = await execAsync(command);
+
+        // Logs für Debugging
+        if (stdout) console.log(`FFmpeg stdout: ${stdout}`);
+        if (stderr) console.log(`FFmpeg stderr: ${stderr}`);
+
+        // Lösche die temporäre Filelist-Datei
+        await fsPromises.unlink(fileListPath)
+          .catch(err => console.error(`Error deleting file list: ${err.message}`));
+
+        // Lösche die temporären Kopien der Segmentdateien
+        for (const tempFile of tempSegmentFiles)
+        {
+          await fsPromises.unlink(tempFile)
+            .catch(err => console.error(`Error deleting temp file ${tempFile}: ${err.message}`));
+        }
+
+        // Überprüfe, ob die Ausgabedatei existiert
+        if (!fs.existsSync(outputFile))
+        {
+          throw new Error(`Output file was not created: ${outputFile}`);
+        }
+
+        // Dateigröße ausgeben
+        const fileStats = await fsPromises.stat(outputFile);
+        console.log(`Compilation created successfully: ${outputFile}, size: ${(fileStats.size / (1024 * 1024)).toFixed(2)} MB`);
+
+        return outputFile;
+      } finally
+      {
+        // Stellen wir sicher, dass temporäre Dateien in jedem Fall gelöscht werden
+        for (const tempFile of tempSegmentFiles)
+        {
+          if (fs.existsSync(tempFile))
+          {
+            try
+            {
+              await fsPromises.unlink(tempFile);
+              console.log(`Cleaned up temp file: ${tempFile}`);
+            } catch (err)
+            {
+              console.error(`Error during cleanup of temp file ${tempFile}: ${err.message}`);
+            }
+          }
+        }
+      }
+    } catch (error)
+    {
+      console.error(`Error creating compilation: ${error.message}`);
+      throw new Error(`Failed to create compilation: ${error.message}`);
     }
   }
 };

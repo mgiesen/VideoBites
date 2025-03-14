@@ -55,7 +55,7 @@ router.post('/extract', async (req, res) =>
 {
   try
   {
-    const { url, segments, quality } = req.body;
+    const { url, segments, quality, mergeSegments } = req.body;
 
     if (!url)
     {
@@ -67,54 +67,36 @@ router.post('/extract', async (req, res) =>
       return res.status(400).json({ error: 'At least one segment is required' });
     }
 
-    // Qualitätsparameter validieren
     const validQualityOptions = ["144", "240", "360", "480", "720", "1080", "1440", "2160", "audio"];
     const defaultQuality = "720";
-
-    // Wenn keine Qualität angegeben oder nicht gültig, Standardwert verwenden
     const videoQuality = quality && validQualityOptions.includes(quality) ? quality : defaultQuality;
 
-    // Job ID erstellen
     const jobId = uuidv4();
-
-    // Job speichern
-    jobs.set(jobId, {
+    const job = {
       id: jobId,
       url,
       segments,
       quality: videoQuality,
-      status: 'pending',
-      result: null,
+      mergeSegments: !!mergeSegments,
+      status: 'processing', // Initialstatus auf 'processing'
+      result: [],
       error: null,
       createdAt: new Date()
+    };
+    jobs.set(jobId, job);
+
+    // Verarbeitung starten und Job-Objekt übergeben
+    videoService.processVideo(url, segments, videoQuality, !!mergeSegments, job).catch(error =>
+    {
+      console.error('Error in processVideo:', error);
+      job.status = 'failed';
+      job.error = error.message;
+      jobs.set(jobId, job);
     });
 
-    // Verarbeitung im Hintergrund starten
-    videoService.processVideo(url, segments, videoQuality)
-      .then(result =>
-      {
-        const job = jobs.get(jobId);
-        if (job)
-        {
-          job.status = 'completed';
-          job.result = result;
-          job.completedAt = new Date();
-          jobs.set(jobId, job);
-        }
-      })
-      .catch(error =>
-      {
-        const job = jobs.get(jobId);
-        if (job)
-        {
-          job.status = 'failed';
-          job.error = error.message;
-          jobs.set(jobId, job);
-        }
-      });
-
-    return res.status(202).json({ jobId, status: 'pending' });
-  } catch (error)
+    return res.status(202).json({ jobId, status: 'processing' });
+  }
+  catch (error)
   {
     console.error('Error processing video:', error);
     return res.status(500).json({ error: 'Failed to process video' });
@@ -131,6 +113,22 @@ router.get('/status/:jobId', (req, res) =>
   if (!job)
   {
     return res.status(404).json({ error: 'Job not found' });
+  }
+
+  // Vor dem Senden prüfen, ob es ein zusammengeführtes Segment gibt, das noch nicht fertig ist
+  if (job.result)
+  {
+    const mergedSegmentIndex = job.result.findIndex(r => r.segment && r.segment.isMerged && r.filePath === null);
+    if (mergedSegmentIndex !== -1)
+    {
+      // Wenn das zusammengeführte Segment noch nicht fertig ist, setzen wir den Status des Jobs auf "compiling"
+      job.compilationStatus = "in_progress";
+    } else if (job.compilationStatus === "in_progress")
+    {
+      // Wenn das zusammengeführte Segment fertig ist und vorher im Status "compiling" war,
+      // setzen wir den Status des Jobs auf "completed"
+      job.compilationStatus = "completed";
+    }
   }
 
   return res.status(200).json(job);

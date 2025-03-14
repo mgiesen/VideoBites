@@ -12,7 +12,7 @@ Die Anwendung ist besonders nützlich für:
 ## Funktionen
 
 - **Benutzerfreundliche Weboberfläche** - Einfache Bedienung ohne Programmierkenntnisse
-- **Flexible Segmentauswahl** - Extrahiere beliebig viele Zeitabschnitte aus einem Video
+- **Flexible Segmentauswahl** - Extrahiere beliebig viele Zeitabschnitte aus einem Video und füge sie optional zu einem Zusammenschnitt zusammen
 - **Vorschau-Funktion** - Anzeige der extrahierten Segmente direkt im Browser
 - **Qualitätsauswahl** - Wähle zwischen verschiedenen Videoqualitäten (144p bis 4K)
 - **Audio-Modus** - Möglichkeit, nur den Audiokanal zu extrahieren
@@ -48,7 +48,7 @@ Die Nutzung von VideoBites muss im Einklang mit den Urheber- und Nutzungsrechten
 
 1. **Video auswählen**: Gib eine YouTube-URL ein und klicke auf "Prüfen".
 2. **Qualität wählen**: Wähle die gewünschte Videoqualität aus dem Dropdown-Menü.
-3. **Segmente definieren**: Füge beliebig viele Zeitabschnitte hinzu, indem du Start- und Endzeiten festlegst.
+3. **Segmente definieren**: Füge beliebig viele Zeitabschnitte hinzu, indem du Start- und Endzeiten festlegst. Aktiviere die Option "Zusammenschnitt erstellen", um alle Segmente zu einer Datei zusammenzufügen.
 4. **Extrahieren**: Klicke auf "Segmente extrahieren", um den Prozess zu starten.
 5. **Vorschau & Download**: Wenn die Extraktion abgeschlossen ist, kannst du die Segmente ansehen und herunterladen.
 
@@ -125,7 +125,8 @@ Content-Type: application/json
     { "start": 10, "end": 20 },
     { "start": 30, "end": 40 }
   ],
-  "quality": "720"
+  "quality": "720",
+  "mergeSegments": true
 }
 ```
 
