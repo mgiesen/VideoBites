@@ -55,7 +55,7 @@ router.post('/extract', async (req, res) =>
 {
   try
   {
-    const { url, segments, quality, mergeSegments, createDocumentation, parallelExtraction } = req.body;
+    const { url, segments, quality, mergeSegments, parallelExtraction } = req.body;
 
     if (!url)
     {
@@ -78,8 +78,7 @@ router.post('/extract', async (req, res) =>
       segments,
       quality: videoQuality,
       mergeSegments: !!mergeSegments,
-      createDocumentation: !!createDocumentation,
-      parallelExtraction: !!parallelExtraction, // Neue Option speichern
+      parallelExtraction: !!parallelExtraction,
       status: 'processing',
       result: [],
       error: null,
@@ -87,14 +86,13 @@ router.post('/extract', async (req, res) =>
     };
     jobs.set(jobId, job);
 
-    // Parameter an videoService.processVideo übergeben
+    // Verarbeitung starten und Job-Objekt übergeben
     videoService.processVideo(
       url,
       segments,
       videoQuality,
       !!mergeSegments,
       job,
-      !!createDocumentation,
       !!parallelExtraction
     ).catch(error =>
     {

@@ -21,7 +21,6 @@ const videoViews = document.getElementById('videoViews');
 const qualityCard = document.getElementById('qualityCard');
 const qualitySelect = document.getElementById('qualitySelect');
 const mergeSegmentsCheck = document.getElementById('mergeSegmentsCheck');
-const createDocCheck = document.getElementById('createDocCheck');
 const parallelExtractionCheck = document.getElementById('parallelExtractionCheck');
 const segmentsCard = document.getElementById('segmentsCard');
 const segmentsHeader = document.getElementById('segmentsHeader');
@@ -451,8 +450,6 @@ async function extractSegments()
     enterExtractionMode();
     updateSegmentsToLoadingState();
 
-    const mergeSegmentsEnabled = mergeSegmentsCheck.checked;
-
     try
     {
         const extractResponse = await callAPI('/extract', 'POST', {
@@ -460,7 +457,6 @@ async function extractSegments()
             segments: segments,
             quality: qualitySelect.value,
             mergeSegments: mergeSegmentsCheck.checked,
-            createDocumentation: createDocCheck.checked,
             parallelExtraction: parallelExtractionCheck.checked
         });
         currentJobId = extractResponse.jobId;
@@ -525,26 +521,22 @@ function updateSegmentsToLoadingState()
         segmentsContainer.insertAdjacentHTML('beforeend', loadingSegmentHtml);
     });
 
-    // Zeige Dokumentations-Segment, wenn Option aktiviert ist
-    if (createDocCheck.checked)
-    {
-        const docSegmentHtml = `
-            <div class="segment-item segment-loading segment-documentation">
-                <div class="spinner-container">
-                    <div class="spinner-border text-info" role="status">
-                        <span class="visually-hidden">Lädt...</span>
-                    </div>
-                    <p class="spinner-text mb-0">Quellendokumentation wird erstellt...</p>
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            Metadaten und Segmentinformationen
-                        </small>
-                    </div>
+    const docSegmentHtml = `
+        <div class="segment-item segment-loading" id="documentation-segment">
+            <div class="spinner-container">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Lädt...</span>
+                </div>
+                <p class="spinner-text mb-0">Quellendokumentation wird erstellt...</p>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Metadaten und Segmentinformationen
+                    </small>
                 </div>
             </div>
-        `;
-        segmentsContainer.insertAdjacentHTML('beforeend', docSegmentHtml);
-    }
+        </div>
+    `;
+    segmentsContainer.insertAdjacentHTML('beforeend', docSegmentHtml);
 
     if (mergeSegmentsCheck.checked && currentSegments.length > 1)
     {
@@ -553,7 +545,7 @@ function updateSegmentsToLoadingState()
         mergedSegmentContainer.innerHTML = `
             <div class="segment-item segment-loading segment-merged" data-merged="true">
                 <div class="spinner-container">
-                    <div class="spinner-border text-success" role="status">
+                    <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Lädt...</span>
                     </div>
                     <p class="spinner-text mb-0">Zusammenschnitt wird erstellt...</p>
@@ -629,10 +621,11 @@ function updateMergedSegmentToReadyState(result)
 
 function updateDocumentationToReadyState()
 {
-    const docElement = document.querySelector('.segment-documentation');
+    const docElement = document.getElementById('documentation-segment');
     if (docElement)
     {
-        docElement.className = 'segment-item segment-ready segment-documentation';
+        // Klasse zu "segment-ready" geändert (entfernt segment-documentation)
+        docElement.className = 'segment-item segment-ready';
         docElement.innerHTML = `
             <div class="segment-info">
                 <h6 class="mb-1">Quellendokumentation</h6>

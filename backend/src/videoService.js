@@ -79,11 +79,10 @@ const videoService = {
    * @param {string} quality - Videoqualität ('144', '240', '360', '480', '720', '1080', '1440', '2160', 'audio')
    * @param {boolean} mergeSegments - Ob die Segmente zu einer Datei zusammengefügt werden sollen
    * @param {Object} job - Das Job-Objekt für Status-Updates
-   * @param {boolean} createDocumentation - Ob Dokumentation erstellt werden soll
    * @param {boolean} parallelExtraction - Ob die Segmente parallel verarbeitet werden sollen
    * @returns {Promise<void>} - Promise, die aufgelöst wird, wenn die Verarbeitung abgeschlossen ist
    */
-  async processVideo(url, segments, quality = "720", mergeSegments = false, job, createDocumentation = false, parallelExtraction = true)
+  async processVideo(url, segments, quality = "720", mergeSegments = false, job, parallelExtraction = true)
   {
     if (!job) throw new Error('Job not provided');
 
@@ -183,13 +182,10 @@ const videoService = {
         });
       }
 
-      // Erstelle Dokumentation, wenn Option aktiviert ist
-      if (createDocumentation)
-      {
-        const videoInfo = await this.getVideoInfo(url);
-        const documentation = await this.createDocumentation(videoInfo, segments, job.result, job.id);
-        job.documentation = documentation;
-      }
+      // Erstelle Dokumentation
+      const videoInfo = await this.getVideoInfo(url);
+      const documentation = await this.createDocumentation(videoInfo, segments, job.result, job.id);
+      job.documentation = documentation;
 
       job.status = 'completed';
       job.completedAt = new Date();

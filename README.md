@@ -17,7 +17,7 @@ Die Anwendung ist besonders nützlich für:
 - **Qualitätsauswahl** - Wähle zwischen verschiedenen Videoqualitäten (144p bis 4K)
 - **Audio-Modus** - Möglichkeit, nur den Audiokanal zu extrahieren
 - **Download-Option** - Speichere die Ausschnitte auf deinem Gerät
-- **Quellendokumentation** - Erstelle automatisch eine JSON-Datei mit umfassenden Metadaten und Segmentinformationen
+- **Quellendokumentation** - Erstellt automatisch eine JSON-Datei mit umfassenden Metadaten und Segmentinformationen
 - **Vollständige API** - Alle Funktionen sind auch programmatisch über die API zugänglich
 
 ## Rechtliche Hinweise
@@ -52,11 +52,11 @@ Die Nutzung von VideoBites muss im Einklang mit den Urheber- und Nutzungsrechten
 3. **Optionen aktivieren**: Optional "Zusammenschnitt erstellen" und/oder "Quellendokumentation erstellen" aktivieren.
 4. **Segmente definieren**: Füge beliebig viele Zeitabschnitte hinzu, indem du Start- und Endzeiten festlegst.
 5. **Extrahieren**: Klicke auf "Segmente extrahieren", um den Prozess zu starten.
-6. **Vorschau & Download**: Wenn die Extraktion abgeschlossen ist, kannst du die Segmente ansehen und herunterladen. Bei aktivierter Quellendokumentation steht diese ebenfalls zum Download bereit.
+6. **Vorschau & Download**: Wenn die Extraktion abgeschlossen ist, kannst du die Segmente ansehen und herunterladen.
 
 ## Quellendokumentation
 
-Die Quellendokumentation ermöglicht eine vollständige Nachverfolgung der extrahierten Inhalte:
+Die Quellendokumentation ist eine vollständige Nachverfolgung der extrahierten Inhalte:
 
 - Enthält umfassende Video-Metadaten (Titel, Kanal, Beschreibung, Tags, Kategorien, Sprache)
 - Speichert genaue Zeitmarken und Dateinamen aller Segmente
@@ -114,8 +114,7 @@ Content-Type: application/json
     { "start": 30, "end": 40 }
   ],
   "quality": "720",
-  "mergeSegments": true,
-  "createDocumentation": true
+  "mergeSegments": true
 }
 ```
 
