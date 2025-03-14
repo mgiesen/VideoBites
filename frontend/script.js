@@ -715,18 +715,20 @@ function updateCompletedSegments(results)
 
     results.forEach((result, index) =>
     {
-        if (result.segment && result.segment.isMerged)
+        // Nur Segmente mit einer fertigen Datei aktualisieren
+        if (result.filePath)
         {
-            if (result.filePath)
+            if (result.segment && result.segment.isMerged)
             {
                 updateMergedSegmentToReadyState(result);
+                // Speichern für den Download/Stream-Index
                 completedSegments.push({ index: currentSegments.length, type: result.type });
             }
-        }
-        else if (!completedSegments.some(seg => seg.index === index))
-        {
-            completedSegments.push({ index, type: result.type });
-            updateSegmentToReadyState(index, result.filePath);
+            else if (!completedSegments.some(seg => seg.index === index))
+            {
+                completedSegments.push({ index, type: result.type });
+                updateSegmentToReadyState(index, result.filePath);
+            }
         }
     });
 }

@@ -147,11 +147,6 @@ router.get('/download/:jobId/:segmentIndex', (req, res) =>
     return res.status(404).json({ error: 'Job not found' });
   }
 
-  if (job.status !== 'completed')
-  {
-    return res.status(400).json({ error: 'Job not completed yet' });
-  }
-
   const index = parseInt(segmentIndex, 10);
 
   if (isNaN(index) || index < 0 || index >= job.result.length)
@@ -159,9 +154,14 @@ router.get('/download/:jobId/:segmentIndex', (req, res) =>
     return res.status(400).json({ error: 'Invalid segment index' });
   }
 
-  const filePath = job.result[index].filePath;
+  // Prüfen, ob das spezifische Segment fertig ist
+  const segment = job.result[index];
+  if (!segment || !segment.filePath)
+  {
+    return res.status(400).json({ error: 'Segment not completed yet' });
+  }
 
-  return res.download(filePath);
+  return res.download(segment.filePath);
 });
 
 // Neuer Endpunkt: Video-Segment streamen (für Wiedergabe im Browser)
@@ -176,11 +176,6 @@ router.get('/stream/:jobId/:segmentIndex', (req, res) =>
     return res.status(404).json({ error: 'Job not found' });
   }
 
-  if (job.status !== 'completed')
-  {
-    return res.status(400).json({ error: 'Job not completed yet' });
-  }
-
   const index = parseInt(segmentIndex, 10);
 
   if (isNaN(index) || index < 0 || index >= job.result.length)
@@ -188,7 +183,14 @@ router.get('/stream/:jobId/:segmentIndex', (req, res) =>
     return res.status(400).json({ error: 'Invalid segment index' });
   }
 
-  const filePath = job.result[index].filePath;
+  // Prüfen, ob das spezifische Segment fertig ist
+  const segment = job.result[index];
+  if (!segment || !segment.filePath)
+  {
+    return res.status(400).json({ error: 'Segment not completed yet' });
+  }
+
+  const filePath = segment.filePath;
 
   // Prüfen, ob die Datei existiert
   if (!fs.existsSync(filePath))
