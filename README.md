@@ -23,6 +23,49 @@ Die Nutzung von `VideoBites` muss im Einklang mit den Urheber- und Nutzungsrecht
 
 ## Installation
 
+Es gibt zwei Möglichkeiten, VideoBites zu installieren:
+
+### Option 1: Vorgefertigtes Docker-Image verwenden (empfohlen)
+
+1. Erstelle eine Datei namens `docker-compose.yml` mit folgendem Inhalt:
+
+   ```yaml
+   services:
+     videobites:
+       image: ghcr.io/mgiesen/videobites:latest
+       container_name: videobites
+       restart: unless-stopped
+       ports:
+         - "80:3000"
+       volumes:
+         - ./data:/app/data
+       environment:
+         - DOWNLOAD_DIR=/app/data
+
+   volumes:
+     data:
+       driver: local
+   ```
+
+2. Erstelle den Datenordner:
+
+   ```bash
+   mkdir -p data
+   ```
+
+3. Docker-Container starten:
+
+   ```bash
+   docker-compose up -d
+   ```
+
+4. Öffne die Weboberfläche in deinem Browser:
+   ```
+   http://localhost
+   ```
+
+### Option 2: Aus dem Quellcode bauen
+
 1. Repository klonen:
 
    ```bash
@@ -37,7 +80,6 @@ Die Nutzung von `VideoBites` muss im Einklang mit den Urheber- und Nutzungsrecht
    ```
 
 3. Öffne die Weboberfläche in deinem Browser:
-
    ```
    http://localhost
    ```
