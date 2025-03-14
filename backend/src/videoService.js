@@ -73,14 +73,17 @@ const videoService = {
   },
 
   /**
-   * Video-Verarbeitung
+   * Video-Verarbeitung mit optionaler Parallelisierung
    * @param {string} url - YouTube-URL
    * @param {Array<{start: number, end: number}>} segments - Zeitsegmente
    * @param {string} quality - Videoqualität ('144', '240', '360', '480', '720', '1080', '1440', '2160', 'audio')
    * @param {boolean} mergeSegments - Ob die Segmente zu einer Datei zusammengefügt werden sollen
-   * @returns {Promise<Array<{segment: {start: number, end: number}, filePath: string}>>} - Ergebnisse
+   * @param {Object} job - Das Job-Objekt für Status-Updates
+   * @param {boolean} createDocumentation - Ob Dokumentation erstellt werden soll
+   * @param {boolean} parallelExtraction - Ob die Segmente parallel verarbeitet werden sollen
+   * @returns {Promise<void>} - Promise, die aufgelöst wird, wenn die Verarbeitung abgeschlossen ist
    */
-  async processVideo(url, segments, quality = "720", mergeSegments = false, job, createDocumentation = false)
+  async processVideo(url, segments, quality = "720", mergeSegments = false, job, createDocumentation = false, parallelExtraction = true)
   {
     if (!job) throw new Error('Job not provided');
 
@@ -93,23 +96,76 @@ const videoService = {
       const videoId = uuidv4();
       downloadedFile = await this.downloadVideo(url, videoId, quality);
 
-      // Individuelle Segmente verarbeiten
-      for (let i = 0; i < segments.length; i++)
+      // Unterschiedliche Verarbeitung je nach parallelExtraction-Parameter
+      if (parallelExtraction)
       {
-        const segment = segments[i];
-        const segmentId = `${videoId}_segment_${i}`;
-        const segmentPath = await this.extractSegment(
-          downloadedFile,
-          segment.start,
-          segment.end,
-          segmentId,
-          quality === "audio"
-        );
-        job.result.push({
-          segment,
-          filePath: segmentPath,
-          type: quality === "audio" ? "audio" : "video"
+        // PARALLELE VERARBEITUNG
+        console.log(`Video heruntergeladen. Starte parallele Verarbeitung von ${segments.length} Segmenten`);
+
+        // Alle Segmentextraktionen gleichzeitig starten
+        const segmentPromises = segments.map(async (segment, i) =>
+        {
+          const segmentId = `${videoId}_segment_${i}`;
+          console.log(`Starte Extraktion von Segment ${i + 1}/${segments.length}: ${segment.start}s bis ${segment.end}s`);
+
+          const segmentPath = await this.extractSegment(
+            downloadedFile,
+            segment.start,
+            segment.end,
+            segmentId,
+            quality === "audio"
+          );
+
+          console.log(`Segment ${i + 1}/${segments.length} fertig extrahiert: ${path.basename(segmentPath)}`);
+
+          return {
+            segment,
+            filePath: segmentPath,
+            type: quality === "audio" ? "audio" : "video",
+            index: i // Index für die spätere Sortierung
+          };
         });
+
+        // Auf alle Segmentextraktionen warten
+        const results = await Promise.all(segmentPromises);
+        console.log(`Alle ${segments.length} Segmente wurden parallel verarbeitet`);
+
+        // Ergebnisse in sortierter Reihenfolge hinzufügen
+        results.sort((a, b) => a.index - b.index);
+        for (const { segment, filePath, type } of results)
+        {
+          job.result.push({ segment, filePath, type });
+        }
+      } else
+      {
+        // SEQUENTIELLE VERARBEITUNG (ursprünglicher Code)
+        console.log(`Video heruntergeladen. Starte sequentielle Verarbeitung von ${segments.length} Segmenten`);
+
+        // Individuelle Segmente nacheinander verarbeiten
+        for (let i = 0; i < segments.length; i++)
+        {
+          const segment = segments[i];
+          const segmentId = `${videoId}_segment_${i}`;
+          console.log(`Starte Extraktion von Segment ${i + 1}/${segments.length}: ${segment.start}s bis ${segment.end}s`);
+
+          const segmentPath = await this.extractSegment(
+            downloadedFile,
+            segment.start,
+            segment.end,
+            segmentId,
+            quality === "audio"
+          );
+
+          job.result.push({
+            segment,
+            filePath: segmentPath,
+            type: quality === "audio" ? "audio" : "video"
+          });
+
+          console.log(`Segment ${i + 1}/${segments.length} fertig extrahiert: ${path.basename(segmentPath)}`);
+        }
+
+        console.log(`Alle ${segments.length} Segmente wurden sequentiell verarbeitet`);
       }
 
       // Zusammenschnitt erstellen, falls aktiviert

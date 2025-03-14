@@ -55,7 +55,7 @@ router.post('/extract', async (req, res) =>
 {
   try
   {
-    const { url, segments, quality, mergeSegments, createDocumentation } = req.body;
+    const { url, segments, quality, mergeSegments, createDocumentation, parallelExtraction } = req.body;
 
     if (!url)
     {
@@ -79,6 +79,7 @@ router.post('/extract', async (req, res) =>
       quality: videoQuality,
       mergeSegments: !!mergeSegments,
       createDocumentation: !!createDocumentation,
+      parallelExtraction: !!parallelExtraction, // Neue Option speichern
       status: 'processing',
       result: [],
       error: null,
@@ -86,8 +87,16 @@ router.post('/extract', async (req, res) =>
     };
     jobs.set(jobId, job);
 
-    // Verarbeitung starten und Job-Objekt übergeben
-    videoService.processVideo(url, segments, videoQuality, !!mergeSegments, job, !!createDocumentation).catch(error =>
+    // Parameter an videoService.processVideo übergeben
+    videoService.processVideo(
+      url,
+      segments,
+      videoQuality,
+      !!mergeSegments,
+      job,
+      !!createDocumentation,
+      !!parallelExtraction
+    ).catch(error =>
     {
       console.error('Error in processVideo:', error);
       job.status = 'failed';
@@ -96,8 +105,7 @@ router.post('/extract', async (req, res) =>
     });
 
     return res.status(202).json({ jobId, status: 'processing' });
-  }
-  catch (error)
+  } catch (error)
   {
     console.error('Error processing video:', error);
     return res.status(500).json({ error: 'Failed to process video' });

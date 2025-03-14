@@ -22,6 +22,7 @@ const qualityCard = document.getElementById('qualityCard');
 const qualitySelect = document.getElementById('qualitySelect');
 const mergeSegmentsCheck = document.getElementById('mergeSegmentsCheck');
 const createDocCheck = document.getElementById('createDocCheck');
+const parallelExtractionCheck = document.getElementById('parallelExtractionCheck');
 const segmentsCard = document.getElementById('segmentsCard');
 const segmentsHeader = document.getElementById('segmentsHeader');
 const addSegmentBtn = document.getElementById('addSegmentBtn');
@@ -459,7 +460,8 @@ async function extractSegments()
             segments: segments,
             quality: qualitySelect.value,
             mergeSegments: mergeSegmentsCheck.checked,
-            createDocumentation: createDocCheck.checked
+            createDocumentation: createDocCheck.checked,
+            parallelExtraction: parallelExtractionCheck.checked
         });
         currentJobId = extractResponse.jobId;
         startStatusPolling(currentJobId);
@@ -479,6 +481,7 @@ function enterExtractionMode()
     qualitySelect.disabled = true;
     mergeSegmentsCheck.disabled = true;
     createDocCheck.disabled = true;
+    parallelExtractionCheck.disabled = true;
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'none');
     document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = true);
 }
@@ -492,6 +495,7 @@ function exitExtractionMode()
     qualitySelect.disabled = false;
     mergeSegmentsCheck.disabled = false;
     createDocCheck.disabled = false;
+    parallelExtractionCheck.disabled = false;
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'block');
     document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = false);
 }
