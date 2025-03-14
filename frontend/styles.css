@@ -1,4 +1,4 @@
-/* Base Styles */
+/* Base */
 :root {
 	--primary-color: #3498db;
 	--secondary-color: #2c3e50;
@@ -21,7 +21,7 @@ body {
 	line-height: 1.6;
 }
 
-/* Header Styles */
+/* Header */
 header h1 {
 	font-weight: 700;
 	letter-spacing: -1px;
@@ -31,7 +31,7 @@ header .text-primary {
 	color: var(--primary-color) !important;
 }
 
-/* Card Styles */
+/* Card */
 .card {
 	border: none;
 	border-radius: var(--border-radius);
@@ -55,7 +55,7 @@ header .text-primary {
 	border-top: 1px solid var(--medium-gray);
 }
 
-/* Button Styles */
+/* Button */
 .btn {
 	border-radius: var(--border-radius);
 	font-weight: 500;
@@ -122,7 +122,7 @@ header .text-primary {
 	border-radius: 50%;
 }
 
-/* Segment Styles */
+/* Segment */
 .segment-item {
 	background-color: var(--medium-gray);
 	border-radius: var(--border-radius);
@@ -161,7 +161,38 @@ header .text-primary {
 	align-self: center;
 }
 
-/* Custom Slider Styles */
+/* Add Segment */
+.segment-add-container {
+	position: relative;
+	margin: 1.5rem 0 1rem;
+	text-align: center;
+}
+
+.segment-divider {
+	position: relative;
+	padding: 0 1rem;
+}
+
+.segment-divider::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background-color: var(--medium-gray);
+	z-index: 1;
+}
+
+.segment-add-btn {
+	position: relative;
+	z-index: 2;
+	padding: 0.5rem 1.25rem;
+	box-shadow: var(--box-shadow);
+	font-weight: 500;
+}
+
+/* Custom Slider */
 .form-range {
 	width: 100%;
 }
