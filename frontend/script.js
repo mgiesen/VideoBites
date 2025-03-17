@@ -58,9 +58,6 @@ document.addEventListener('DOMContentLoaded', () =>
         window.location.reload();
     });
 
-    // Initialize with one empty segment
-    addSegment(true);
-
     // Version laden
     loadVersionInfo();
 });
@@ -126,7 +123,8 @@ async function validateAndFetchVideoInfo()
         checkUrlBtn.disabled = false;
         checkUrlBtn.innerHTML = '<i class="fas fa-check me-1"></i> Prüfen';
         showToast('success', 'Video-Informationen erfolgreich geladen');
-    } catch (error)
+    }
+    catch (error)
     {
         resetValidation();
     }
@@ -159,6 +157,12 @@ function displayVideoInfo(info)
     videoInfoCard.style.display = 'block';
 
     updateSegmentTimeConstraints(info.duration);
+
+    // Check if there are no segments yet, and add one
+    if (document.querySelectorAll('.segment-item').length === 0)
+    {
+        addSegment(true);
+    }
 }
 
 // Helper function to extract YouTube ID
@@ -169,6 +173,21 @@ function getYouTubeId(url)
     return match ? match[1] : null;
 }
 
+function parseTimeInput(timeStr)
+{
+    const parts = timeStr.split(':').map(part => parseInt(part) || 0);
+    if (parts.length === 3)
+    {
+        // Format: HH:MM:SS
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2)
+    {
+        // Format: MM:SS
+        return parts[0] * 60 + parts[1];
+    }
+    return 0;
+}
+
 // Segment management
 function addSegment(isFirstElement = false)
 {
@@ -176,43 +195,52 @@ function addSegment(isFirstElement = false)
     const maxDuration = currentVideoInfo ? currentVideoInfo.duration : 600;
     const deleteIcon = !isFirstElement ? '<button type="button" class="btn btn-sm btn-light remove-segment-btn" aria-label="Delete"><i class="fas fa-trash-alt"></i></button>' : '';
 
+    // Make sure end time is at most 10 seconds or maxDuration if less
+    const endTimeInitial = Math.min(maxDuration, 10);
+
     const segmentHtml = `
     <div class="segment-item" data-index="${segmentIndex}">
         <div class="d-flex justify-content-between align-items-center mb-2">
             <div class="segment-title-container">
                 <input type="text" class="segment-title-input" value="Segment ${segmentIndex + 1}" spellcheck="false">
-                <span class="badge bg-secondary segment-duration">Dauer: 10s</span>
             </div>
             ${deleteIcon}
         </div>
         <div class="segment-controls">
-            <div class="time-input mb-3">
-                <label for="start-time-${segmentIndex}" class="time-label mb-1">Startzeit</label>
-                <div class="d-flex align-items-center mb-1">
-                    <button class="btn btn-sm btn-outline-secondary time-stepper-btn me-2" data-action="decrease-start">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <input type="text" class="form-control time-text-input start-time-text" style="text-align: center;" placeholder="00:00" value="00:00">
-                    <button class="btn btn-sm btn-outline-secondary time-stepper-btn ms-2" data-action="increase-start">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-                <input type="range" class="form-range start-time" id="start-time-${segmentIndex}" 
-                    min="0" max="${maxDuration}" step="1" value="0">
-            </div>
             <div class="time-input">
-                <label for="end-time-${segmentIndex}" class="time-label mb-1">Endzeit</label>
-                <div class="d-flex align-items-center mb-1">
-                    <button class="btn btn-sm btn-outline-secondary time-stepper-btn me-2" data-action="decrease-end">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <input type="text" class="form-control time-text-input end-time-text" style="text-align: center;" placeholder="00:10" value="${formatTime(maxDuration > 10 ? 10 : maxDuration)}">
-                    <button class="btn btn-sm btn-outline-secondary time-stepper-btn ms-2" data-action="increase-end">
-                        <i class="fas fa-plus"></i>
-                    </button>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label for="start-time-text-${segmentIndex}" class="time-label mb-1">Startzeit</label>
+                    <div class="d-flex align-items-center mb-1">
+                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn me-2" data-action="decrease-start">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="text" id="start-time-text-${segmentIndex}" class="form-control time-text-input start-time-text" style="text-align: center;" placeholder="00:00" value="00:00">
+                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn ms-2" data-action="increase-start">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
                 </div>
-                <input type="range" class="form-range end-time" id="end-time-${segmentIndex}" 
-                    min="0" max="${maxDuration}" step="1" value="${maxDuration > 10 ? 10 : maxDuration}">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label for="end-time-text-${segmentIndex}" class="time-label mb-1">Endzeit</label>
+                    <div class="d-flex align-items-center mb-1">
+                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn me-2" data-action="decrease-end">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="text" id="end-time-text-${segmentIndex}" class="form-control time-text-input end-time-text" style="text-align: center;" placeholder="00:10" value="${formatTime(endTimeInitial)}">
+                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn ms-2" data-action="increase-end">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="dual-range-slider">
+                    <div class="dual-range-track"></div>
+                    <div class="dual-range-progress"></div>
+                    <div class="dual-range-handle" data-handle="start"></div>
+                    <div class="dual-range-handle" data-handle="end"></div>
+                </div>
+                <div>
+                    <span class="segment-duration">Dauer: ${formatDuration(endTimeInitial)}</span>
+                </div>
             </div>
         </div>
     </div>
@@ -242,93 +270,237 @@ function addSegment(isFirstElement = false)
         }
     });
 
-    const startTimeInput = newSegment.querySelector('.start-time');
-    const endTimeInput = newSegment.querySelector('.end-time');
     const startTimeTextInput = newSegment.querySelector('.start-time-text');
     const endTimeTextInput = newSegment.querySelector('.end-time-text');
     const durationSpan = newSegment.querySelector('.segment-duration');
+    const dualRangeSlider = newSegment.querySelector('.dual-range-slider');
+    const dualRangeProgress = newSegment.querySelector('.dual-range-progress');
+    const startHandle = newSegment.querySelector('.dual-range-handle[data-handle="start"]');
+    const endHandle = newSegment.querySelector('.dual-range-handle[data-handle="end"]');
 
-    updateSegmentDuration(parseInt(startTimeInput.value), parseInt(endTimeInput.value), durationSpan);
+    // Initialize values with exact integer values to avoid floating point issues
+    let startValue = 0;
+    let endValue = endTimeInitial;
 
-    function parseTimeInput(timeStr)
+    // Initial UI update
+    updateDualRangeUI();
+    updateSegmentDuration(startValue, endValue, durationSpan);
+
+    function updateDualRangeUI()
     {
-        const parts = timeStr.split(':').map(part => parseInt(part) || 0);
-        if (parts.length === 3)
-        {
-            return parts[0] * 3600 + parts[1] * 60 + parts[2];
-        } else if (parts.length === 2)
-        {
-            return parts[0] * 60 + parts[1];
-        }
-        return 0;
+        // Calculate percentages for positions
+        const startPercent = (startValue / maxDuration) * 100;
+        const endPercent = (endValue / maxDuration) * 100;
+
+        // Update handle positions
+        startHandle.style.left = `${startPercent}%`;
+        endHandle.style.left = `${endPercent}%`;
+
+        // Update progress bar
+        dualRangeProgress.style.left = `${startPercent}%`;
+        dualRangeProgress.style.width = `${endPercent - startPercent}%`;
     }
 
-    function updateTimeUI(start, end)
+    function updateAllUI()
     {
-        startTimeInput.value = start;
-        endTimeInput.value = end;
-        startTimeTextInput.value = formatTime(start);
-        endTimeTextInput.value = formatTime(end);
-        updateSegmentDuration(start, end, durationSpan);
+        // Update text inputs
+        startTimeTextInput.value = formatTime(startValue);
+        endTimeTextInput.value = formatTime(endValue);
+
+        // Update slider
+        updateDualRangeUI();
+
+        // Update duration badge
+        updateSegmentDuration(startValue, endValue, durationSpan);
     }
 
-    function handleTimeChange(newStart, newEnd)
+    // Handle text input changes
+    startTimeTextInput.addEventListener('change', function ()
     {
-        const maxDuration = parseInt(endTimeInput.max);
+        const inputTime = parseTimeInput(this.value);
         const minDuration = 1;
-        newStart = Math.max(0, Math.min(newStart, maxDuration - minDuration));
-        newEnd = Math.max(newStart + minDuration, Math.min(newEnd, maxDuration));
-        updateTimeUI(newStart, newEnd);
+
+        // Ensure valid range and constraints
+        startValue = Math.max(0, Math.min(inputTime, endValue - minDuration));
+        updateAllUI();
+    });
+
+    endTimeTextInput.addEventListener('change', function ()
+    {
+        const inputTime = parseTimeInput(this.value);
+        const minDuration = 1;
+
+        // Ensure valid range and constraints
+        endValue = Math.max(startValue + minDuration, Math.min(inputTime, maxDuration));
+        updateAllUI();
+    });
+
+    // Dual handle slider drag functionality
+    let activeHandle = null;
+    let startX = 0;
+    let startLeft = 0;
+
+    function handleMouseDown(e)
+    {
+        e.preventDefault();
+        activeHandle = e.target;
+
+        startX = e.clientX;
+        startLeft = parseFloat(activeHandle.style.left || (activeHandle.dataset.handle === 'start' ? '0' : '100'));
+
+        activeHandle.classList.add('active');
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
     }
 
-    startTimeInput.addEventListener('input', () =>
+    function handleMouseMove(e)
     {
-        let start = parseInt(startTimeInput.value);
-        let end = parseInt(endTimeInput.value);
+        if (!activeHandle) return;
+
+        const rect = dualRangeSlider.getBoundingClientRect();
+        const offsetX = e.clientX - startX;
+        const percentDelta = (offsetX / rect.width) * 100;
+        let newLeftPercent = Math.max(0, Math.min(100, startLeft + percentDelta));
+
         const minDuration = 1;
-        const maxDuration = parseInt(endTimeInput.max);
+        const minDurationPercent = (minDuration / maxDuration) * 100;
 
-        if (start > end - minDuration)
+        if (activeHandle.dataset.handle === 'start')
         {
-            end = Math.min(start + minDuration, maxDuration);
+            // Moving start handle
+            const endPercent = parseFloat(endHandle.style.left || '100');
+
+            // If start handle would push end handle
+            if (newLeftPercent > endPercent - minDurationPercent)
+            {
+                // Push end handle as well, but respect maximum
+                const newEndPercent = Math.min(100, newLeftPercent + minDurationPercent);
+                endValue = Math.round((newEndPercent / 100) * maxDuration);
+
+                // Adjust start position to maintain minimum gap
+                newLeftPercent = Math.max(0, newEndPercent - minDurationPercent);
+            }
+
+            startValue = Math.round((newLeftPercent / 100) * maxDuration);
+        } else
+        {
+            // Moving end handle
+            const startPercent = parseFloat(startHandle.style.left || '0');
+
+            // If end handle would push start handle
+            if (newLeftPercent < startPercent + minDurationPercent)
+            {
+                // Push start handle as well, but respect minimum
+                const newStartPercent = Math.max(0, newLeftPercent - minDurationPercent);
+                startValue = Math.round((newStartPercent / 100) * maxDuration);
+
+                // Adjust end position to maintain minimum gap
+                newLeftPercent = Math.max(newStartPercent + minDurationPercent, newLeftPercent);
+            }
+
+            endValue = Math.min(Math.round((newLeftPercent / 100) * maxDuration), maxDuration);
         }
 
-        updateTimeUI(start, end);
-    });
+        updateAllUI();
+    }
 
-    endTimeInput.addEventListener('input', () =>
+    function handleMouseUp()
     {
-        let start = parseInt(startTimeInput.value);
-        let end = parseInt(endTimeInput.value);
+        if (activeHandle)
+        {
+            activeHandle.classList.remove('active');
+            activeHandle = null;
+        }
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+    }
+
+    // Touch events for mobile support
+    function handleTouchStart(e)
+    {
+        const touch = e.touches[0];
+        activeHandle = e.target;
+
+        startX = touch.clientX;
+        startLeft = parseFloat(activeHandle.style.left || (activeHandle.dataset.handle === 'start' ? '0' : '100'));
+
+        activeHandle.classList.add('active');
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd);
+        e.preventDefault();
+    }
+
+    function handleTouchMove(e)
+    {
+        if (!activeHandle) return;
+
+        const touch = e.touches[0];
+        const rect = dualRangeSlider.getBoundingClientRect();
+        const offsetX = touch.clientX - startX;
+        const percentDelta = (offsetX / rect.width) * 100;
+        let newLeftPercent = Math.max(0, Math.min(100, startLeft + percentDelta));
+
         const minDuration = 1;
+        const minDurationPercent = (minDuration / maxDuration) * 100;
 
-        if (end < minDuration)
+        if (activeHandle.dataset.handle === 'start')
         {
-            end = minDuration;
+            // Moving start handle
+            const endPercent = parseFloat(endHandle.style.left || '100');
+
+            // If start handle would push end handle
+            if (newLeftPercent > endPercent - minDurationPercent)
+            {
+                // Push end handle as well, but respect maximum
+                const newEndPercent = Math.min(100, newLeftPercent + minDurationPercent);
+                endValue = Math.round((newEndPercent / 100) * maxDuration);
+
+                // Adjust start position to maintain minimum gap
+                newLeftPercent = Math.max(0, newEndPercent - minDurationPercent);
+            }
+
+            startValue = Math.round((newLeftPercent / 100) * maxDuration);
+        } else
+        {
+            // Moving end handle
+            const startPercent = parseFloat(startHandle.style.left || '0');
+
+            // If end handle would push start handle
+            if (newLeftPercent < startPercent + minDurationPercent)
+            {
+                // Push start handle as well, but respect minimum
+                const newStartPercent = Math.max(0, newLeftPercent - minDurationPercent);
+                startValue = Math.round((newStartPercent / 100) * maxDuration);
+
+                // Adjust end position to maintain minimum gap
+                newLeftPercent = Math.max(newStartPercent + minDurationPercent, newLeftPercent);
+            }
+
+            endValue = Math.min(Math.round((newLeftPercent / 100) * maxDuration), maxDuration);
         }
 
-        if (end < start + minDuration)
+        updateAllUI();
+        e.preventDefault();
+    }
+
+    function handleTouchEnd()
+    {
+        if (activeHandle)
         {
-            start = Math.max(end - minDuration, 0);
+            activeHandle.classList.remove('active');
+            activeHandle = null;
         }
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+    }
 
-        updateTimeUI(start, end);
-    });
+    // Add event listeners for drag
+    startHandle.addEventListener('mousedown', handleMouseDown);
+    endHandle.addEventListener('mousedown', handleMouseDown);
+    startHandle.addEventListener('touchstart', handleTouchStart);
+    endHandle.addEventListener('touchstart', handleTouchStart);
 
-    startTimeTextInput.addEventListener('change', () =>
-    {
-        const inputTime = parseTimeInput(startTimeTextInput.value);
-        const currentEnd = parseInt(endTimeInput.value);
-        handleTimeChange(inputTime, currentEnd);
-    });
-
-    endTimeTextInput.addEventListener('change', () =>
-    {
-        const currentStart = parseInt(startTimeInput.value);
-        const inputTime = parseTimeInput(endTimeTextInput.value);
-        handleTimeChange(currentStart, inputTime);
-    });
-
+    // Button controls
     const decreaseStartBtn = newSegment.querySelector('[data-action="decrease-start"]');
     const increaseStartBtn = newSegment.querySelector('[data-action="increase-start"]');
     const decreaseEndBtn = newSegment.querySelector('[data-action="decrease-end"]');
@@ -336,30 +508,28 @@ function addSegment(isFirstElement = false)
 
     decreaseStartBtn.addEventListener('click', () =>
     {
-        const start = parseInt(startTimeInput.value) - 1;
-        const end = parseInt(endTimeInput.value);
-        handleTimeChange(start, end);
+        startValue = Math.max(0, startValue - 1);
+        updateAllUI();
     });
 
     increaseStartBtn.addEventListener('click', () =>
     {
-        const start = parseInt(startTimeInput.value) + 1;
-        const end = parseInt(endTimeInput.value);
-        handleTimeChange(start, end);
+        const minDuration = 1;
+        startValue = Math.min(endValue - minDuration, startValue + 1);
+        updateAllUI();
     });
 
     decreaseEndBtn.addEventListener('click', () =>
     {
-        const start = parseInt(startTimeInput.value);
-        const end = parseInt(endTimeInput.value) - 1;
-        handleTimeChange(start, end);
+        const minDuration = 1;
+        endValue = Math.max(startValue + minDuration, endValue - 1);
+        updateAllUI();
     });
 
     increaseEndBtn.addEventListener('click', () =>
     {
-        const start = parseInt(startTimeInput.value);
-        const end = parseInt(endTimeInput.value) + 1;
-        handleTimeChange(start, end);
+        endValue = Math.min(maxDuration, endValue + 1);
+        updateAllUI();
     });
 
     updateExtractButtonState();
@@ -393,31 +563,48 @@ function updateSegmentTimeConstraints(maxDuration)
     const segments = document.querySelectorAll('.segment-item');
     segments.forEach(segment =>
     {
-        const startTimeInput = segment.querySelector('.start-time');
-        const endTimeInput = segment.querySelector('.end-time');
         const startTimeTextInput = segment.querySelector('.start-time-text');
         const endTimeTextInput = segment.querySelector('.end-time-text');
         const durationSpan = segment.querySelector('.segment-duration');
+        const startHandle = segment.querySelector('.dual-range-handle[data-handle="start"]');
+        const endHandle = segment.querySelector('.dual-range-handle[data-handle="end"]');
+        const dualRangeProgress = segment.querySelector('.dual-range-progress');
 
-        startTimeInput.max = maxDuration - 1;
-        endTimeInput.max = maxDuration;
+        // Get current positions as percentages
+        let startPercent = parseFloat(startHandle.style.left) || 0;
+        let endPercent = parseFloat(endHandle.style.left) || Math.min(100, (10 / maxDuration) * 100);
 
-        let start = parseInt(startTimeInput.value);
-        let end = parseInt(endTimeInput.value);
+        // Convert to seconds
+        let start = Math.round((startPercent / 100) * maxDuration);
+        let end = Math.round((endPercent / 100) * maxDuration);
+
+        // Enforce constraints
         if (start > maxDuration - 1) start = maxDuration - 1;
         if (end > maxDuration) end = maxDuration;
         if (end - start < 1) end = start + 1;
 
-        startTimeInput.value = start;
-        endTimeInput.value = end;
+        // Convert back to percentages
+        startPercent = (start / maxDuration) * 100;
+        endPercent = (end / maxDuration) * 100;
+
+        // Update text inputs
         startTimeTextInput.value = formatTime(start);
         endTimeTextInput.value = formatTime(end);
+
+        // Update slider
+        startHandle.style.left = `${startPercent}%`;
+        endHandle.style.left = `${endPercent}%`;
+        dualRangeProgress.style.left = `${startPercent}%`;
+        dualRangeProgress.style.width = `${endPercent - startPercent}%`;
+
+        // Update duration
         updateSegmentDuration(start, end, durationSpan);
     });
 }
 
 function formatDuration(seconds)
 {
+    seconds = Math.round(seconds); // Ensure we're working with whole numbers
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -433,7 +620,7 @@ function formatDuration(seconds)
 
 function updateSegmentDuration(start, end, durationSpan)
 {
-    const duration = end - start;
+    const duration = Math.round(end - start);
     durationSpan.textContent = `Dauer: ${formatDuration(duration)}`;
 }
 
@@ -458,8 +645,12 @@ async function extractSegments()
 
     segmentElements.forEach(segmentElement =>
     {
-        const startTime = parseInt(segmentElement.querySelector('.start-time').value);
-        const endTime = parseInt(segmentElement.querySelector('.end-time').value);
+        const startTimeStr = segmentElement.querySelector('.start-time-text').value;
+        const endTimeStr = segmentElement.querySelector('.end-time-text').value;
+
+        const startTime = parseTimeInput(startTimeStr);
+        const endTime = parseTimeInput(endTimeStr);
+
         const title = segmentElement.querySelector('.segment-title-input').value.trim();
 
         if (isNaN(startTime) || isNaN(endTime) || endTime <= startTime)
@@ -514,7 +705,7 @@ function enterExtractionMode()
     extractBtnContainer.style.display = 'none';
 
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'none');
-    document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = true);
+    document.querySelectorAll('.start-time-text, .end-time-text, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = true);
 }
 
 function exitExtractionMode()
@@ -527,7 +718,7 @@ function exitExtractionMode()
     extractBtnContainer.style.display = 'block';
 
     document.querySelectorAll('.remove-segment-btn').forEach(btn => btn.style.display = 'block');
-    document.querySelectorAll('.start-time, .end-time, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = false);
+    document.querySelectorAll('.start-time-text, .end-time-text, .time-text-input, .time-stepper-btn').forEach(input => input.disabled = false);
 }
 
 function updateSegmentsToLoadingState()
@@ -988,9 +1179,18 @@ function playVideo(index)
 
 function formatTime(seconds)
 {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    seconds = Math.round(seconds); // Round to nearest integer
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hours > 0)
+    {
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else
+    {
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
 }
 
 // Utility functions
