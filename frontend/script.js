@@ -60,6 +60,31 @@ document.addEventListener('DOMContentLoaded', () =>
 
     // Version laden
     loadVersionInfo();
+
+    // Event-Listener für die Wiedergabe Modals
+    const videoModalEl = document.getElementById("videoPlayerModal");
+    const videoPlayer = document.getElementById("videoPlayer");
+    const audioPlayer = document.getElementById("audioPlayer");
+
+    videoModalEl.addEventListener("shown.bs.modal", function ()
+    {
+        // Prüfen, welcher Player aktuell sichtbar ist und diesen abspielen
+        if (videoPlayer.style.display !== "none")
+        {
+            videoPlayer.play().catch(error => console.error("Video playback error:", error));
+        }
+        else if (audioPlayer && audioPlayer.style.display !== "none")
+        {
+            audioPlayer.play().catch(error => console.error("Audio playback error:", error));
+        }
+    });
+
+    videoModalEl.addEventListener("hidden.bs.modal", function ()
+    {
+        // Beide Player pausieren
+        videoPlayer.pause();
+        if (audioPlayer) audioPlayer.pause();
+    });
 });
 
 // API Functions
@@ -1133,15 +1158,6 @@ function playVideo(index)
         {
             document.getElementById("videoPlayerModalLabel").textContent = "Zusammenschnitt aller Segmente";
         }
-
-        videoModalEl.addEventListener("shown.bs.modal", function ()
-        {
-            audioPlayer.play().catch(error => console.error("Audio playback error:", error));
-        });
-        videoModalEl.addEventListener("hidden.bs.modal", function ()
-        {
-            audioPlayer.pause();
-        });
     }
     else
     {
@@ -1165,15 +1181,6 @@ function playVideo(index)
         {
             document.getElementById("videoPlayerModalLabel").textContent = "Zusammenschnitt aller Segmente";
         }
-
-        videoModalEl.addEventListener("shown.bs.modal", function ()
-        {
-            videoPlayer.play().catch(error => console.error("Video playback error:", error));
-        });
-        videoModalEl.addEventListener("hidden.bs.modal", function ()
-        {
-            videoPlayer.pause();
-        });
     }
 }
 
