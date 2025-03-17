@@ -1274,13 +1274,22 @@ async function loadVersionInfo()
 
         const versionInfo = await response.json();
 
-        if (versionInfo.type === 'release')
+        if (true)
         {
             // Release-Version als Link zur GitHub-Tag-Seite anzeigen
             const buildTime = new Date(versionInfo.buildTime).toLocaleString();
             const tagUrl = `https://github.com/mgiesen/VideoBites/releases/tag/${versionInfo.version}`;
 
             versionText.innerHTML = `<a href="${tagUrl}" target="_blank" title="Build: ${buildTime}" class="text-muted text-decoration-none">${versionInfo.version}</a>`;
+
+            // Check for updates
+            checkForUpdates().then(updateInfo =>
+            {
+                if (updateInfo.hasUpdate)
+                {
+                    displayUpdateNotification(updateInfo);
+                }
+            });
         }
         else
         {
@@ -1294,4 +1303,145 @@ async function loadVersionInfo()
         console.error('Fehler beim Laden der Versionsinformationen:', error);
         versionText.innerHTML = 'Version unbekannt';
     }
+}
+
+// Function to check for updates
+async function checkForUpdates()
+{
+    try
+    {
+        // Get current version
+        const versionResponse = await fetch('version.json');
+        if (!versionResponse.ok)
+        {
+            throw new Error('Versionsinformationen nicht verfügbar');
+        }
+        const versionInfo = await versionResponse.json();
+        const currentVersion = versionInfo.version;
+
+        // Fetch latest release from GitHub
+        const githubResponse = await fetch('https://api.github.com/repos/mgiesen/VideoBites/releases/latest');
+        if (!githubResponse.ok)
+        {
+            throw new Error('GitHub API nicht verfügbar');
+        }
+        const releaseInfo = await githubResponse.json();
+        const latestVersion = releaseInfo.tag_name;
+
+        // Compare versions (remove 'v' prefix if present)
+        const currentVersionClean = currentVersion.replace(/^v/, '');
+        const latestVersionClean = latestVersion.replace(/^v/, '');
+
+        // Simple version comparison (this could be enhanced for more complex versioning)
+        if (currentVersionClean !== latestVersionClean)
+        {
+            return {
+                hasUpdate: true,
+                current: currentVersion,
+                latest: latestVersion,
+                releaseUrl: releaseInfo.html_url
+            };
+        } else
+        {
+            return { hasUpdate: false };
+        }
+    } catch (error)
+    {
+        console.error('Fehler beim Prüfen auf Updates:', error);
+        return { hasUpdate: false, error: error.message };
+    }
+}
+
+// Display update notification button
+function displayUpdateNotification(updateInfo)
+{
+    const versionText = document.getElementById('versionText');
+    if (!versionText) return;
+
+    // Create update button
+    const updateButton = document.createElement('button');
+    updateButton.className = 'btn btn-sm btn-warning ms-2 mt-1';
+    updateButton.style.fontSize = '0.7rem';
+    updateButton.innerHTML = `<i class="fas fa-arrow-circle-up me-1"></i> Update verfügbar`;
+    updateButton.title = `Version ${updateInfo.latest} verfügbar`;
+
+    // Add button next to version text
+    versionText.parentNode.appendChild(updateButton);
+
+    // Add click event to show update modal
+    updateButton.addEventListener('click', () =>
+    {
+        showUpdateModal(updateInfo);
+    });
+}
+
+// Show update instructions modal
+function showUpdateModal(updateInfo)
+{
+    // Check if modal already exists
+    let updateModalEl = document.getElementById('updateModal');
+
+    if (!updateModalEl)
+    {
+        // Create modal if it doesn't exist
+        updateModalEl = document.createElement('div');
+        updateModalEl.id = 'updateModal';
+        updateModalEl.className = 'modal fade';
+        updateModalEl.tabIndex = '-1';
+        updateModalEl.setAttribute('aria-labelledby', 'updateModalLabel');
+        updateModalEl.setAttribute('aria-hidden', 'true');
+
+        updateModalEl.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="updateModalLabel">
+                            <i class="fas fa-arrow-circle-up me-2"></i>Update verfügbar
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Eine neue Version von VideoBites ist verfügbar!</p>
+                        <div class="d-flex justify-content-between my-3 p-3 bg-light rounded">
+                            <div>
+                                <span class="text-muted">Aktuelle Version:</span>
+                                <span class="fw-bold ms-2">${updateInfo.current}</span>
+                            </div>
+                            <div>
+                                <span class="text-muted">Neue Version:</span>
+                                <span class="fw-bold ms-2 text-success">${updateInfo.latest}</span>
+                            </div>
+                        </div>
+                        <h6 class="mt-4">Docker Update Anleitung:</h6>
+                        <ol class="mt-3">
+                            <li>Stoppe den aktuellen Docker Container</li>
+                            <li>Entferne das Image</li>
+                            <li>Lade das neuste Image:
+                                <div class="bg-dark text-light p-2 mt-1 rounded">
+                                    <code>docker pull ghcr.io/mgiesen/videobites:latest</code>
+                                </div>
+                            </li>
+                            <li>Starte den Container neu</li>
+                        </ol>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Weitere Informationen zum Update findest du auf GitHub.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Später</button>
+                        <a href="${updateInfo.releaseUrl}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>Zum GitHub Release
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(updateModalEl);
+    }
+
+    // Show the modal
+    const updateModal = new bootstrap.Modal(updateModalEl);
+    updateModal.show();
 }

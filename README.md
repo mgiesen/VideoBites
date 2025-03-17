@@ -36,7 +36,7 @@ Es gibt zwei Möglichkeiten, VideoBites zu installieren:
 2. Docker-Container starten:
 
    ```bash
-   docker run -d --name videobites -p 80:3000 -v videobites_data:/app/data -e DOWNLOAD_DIR=/app/data ghcr.io/mgiesen/videobites:latest
+   docker run -d --name videobites-latest -p 80:3000 -v videobites_data:/app/data -e DOWNLOAD_DIR=/app/data ghcr.io/mgiesen/videobites:latest
    ```
 
 3. Öffne die Weboberfläche in deinem Browser:
