@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Vollständige Git-Historie für Versions-Tags
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -33,7 +35,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -43,6 +45,27 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ github.event_name == 'release' }}
 
+      # Versionsinformationen extrahieren
+      - name: Extract version info
+        id: version_info
+        run: |
+          # Version aus Git-Tags extrahieren 
+          VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "undefined")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+          # BUILD_TYPE auf Basis des Vorhandenseins eines Tags setzen
+          if [[ "$VERSION" == "undefined" ]]; then
+            echo "BUILD_TYPE=development" >> $GITHUB_ENV
+          else
+            echo "BUILD_TYPE=release" >> $GITHUB_ENV
+          fi
+
+          # BUILD_TIME setzen
+          echo "BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
+
+          # Debug-Ausgabe
+          echo "Extracted version info: VERSION=$VERSION, BUILD_TYPE=$BUILD_TYPE"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -51,5 +74,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_TYPE=${{ env.BUILD_TYPE }}
+            VERSION=${{ env.VERSION }}
+            BUILD_TIME=${{ env.BUILD_TIME }}

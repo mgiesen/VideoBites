@@ -60,6 +60,9 @@ document.addEventListener('DOMContentLoaded', () =>
 
     // Initialize with one empty segment
     addSegment(true);
+
+    // Version laden
+    loadVersionInfo();
 });
 
 // API Functions
@@ -1015,5 +1018,42 @@ function getToastIcon(type)
         case 'warning': return 'fa-exclamation-triangle';
         case 'info': return 'fa-info-circle';
         default: return 'fa-info-circle';
+    }
+}
+
+async function loadVersionInfo()
+{
+    const versionText = document.getElementById('versionText');
+    if (!versionText) return;
+
+    try
+    {
+        const response = await fetch('version.json');
+        if (!response.ok)
+        {
+            throw new Error('Versionsinformationen nicht verfügbar');
+        }
+
+        const versionInfo = await response.json();
+
+        if (versionInfo.type === 'release')
+        {
+            // Release-Version als Link zur GitHub-Tag-Seite anzeigen
+            const buildTime = new Date(versionInfo.buildTime).toLocaleString();
+            const tagUrl = `https://github.com/mgiesen/VideoBites/releases/tag/${versionInfo.version}`;
+
+            versionText.innerHTML = `<a href="${tagUrl}" target="_blank" title="Build: ${buildTime}" class="text-muted text-decoration-none">${versionInfo.version}</a>`;
+        }
+        else
+        {
+            // Entwicklungs-Version anzeigen
+            versionText.innerHTML = `<span>Unveröffentlichte Version</span>`;
+            versionText.classList.add('text-muted');
+        }
+    }
+    catch (error)
+    {
+        console.error('Fehler beim Laden der Versionsinformationen:', error);
+        versionText.innerHTML = 'Version unbekannt';
     }
 }

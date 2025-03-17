@@ -1,8 +1,12 @@
 services:
   videobites:
     build:
-      context: ./
       dockerfile: Dockerfile
+      context: ./
+      args:
+        - BUILD_TYPE=${BUILD_TYPE:-development}
+        - VERSION=${VERSION:-undefined}
+        - BUILD_TIME=${BUILD_TIME:-undefined}
     container_name: videobites
     restart: unless-stopped
     ports:
