@@ -235,6 +235,7 @@ const videoService = {
             r.segment.end === segment.end
           );
           return {
+            title: segment.title || `Segment ${index + 1}`,
             start: segment.start,
             end: segment.end,
             duration: segment.end - segment.start,

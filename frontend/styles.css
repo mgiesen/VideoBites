@@ -131,10 +131,51 @@ header .text-primary {
 	transition: var(--transition);
 }
 
+.segment-item .d-flex {
+	min-width: 0;
+}
+
 .segment-controls {
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
+}
+
+.segment-title-container {
+	display: flex;
+	align-items: center;
+	flex: 1;
+	min-width: 0;
+	margin-right: 8px;
+}
+
+.segment-title-input {
+	border: none;
+	background: transparent;
+	font-weight: bold;
+	font-size: 1rem;
+	font-family: inherit;
+	padding: 0;
+	margin: 0;
+	color: inherit;
+	width: 100%;
+	flex: 1;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	outline: none;
+}
+
+.segment-title-input::placeholder {
+	color: inherit;
+	opacity: 0.7;
+}
+
+.segment-duration {
+	margin-left: 8px;
+	flex-shrink: 0;
+	white-space: nowrap;
 }
 
 .time-input {
@@ -195,13 +236,6 @@ header .text-primary {
 /* Custom Slider */
 .form-range {
 	width: 100%;
-}
-
-/* Segment Duration Badge */
-.segment-duration {
-	font-size: 0.8rem;
-	vertical-align: middle;
-	margin-left: 0.5rem;
 }
 
 .download-btn {

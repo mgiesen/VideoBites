@@ -177,42 +177,45 @@ function addSegment(isFirstElement = false)
     const deleteIcon = !isFirstElement ? '<button type="button" class="btn btn-sm btn-light remove-segment-btn" aria-label="Delete"><i class="fas fa-trash-alt"></i></button>' : '';
 
     const segmentHtml = `
-        <div class="segment-item" data-index="${segmentIndex}">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0"><b>Segment ${segmentIndex + 1}</b> <span class="badge bg-secondary segment-duration">Dauer: 10s</span></h6>
-                ${deleteIcon}
+    <div class="segment-item" data-index="${segmentIndex}">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="segment-title-container">
+                <input type="text" class="segment-title-input" value="Segment ${segmentIndex + 1}" spellcheck="false">
+                <span class="badge bg-secondary segment-duration">Dauer: 10s</span>
             </div>
-            <div class="segment-controls">
-                <div class="time-input mb-3">
-                    <label for="start-time-${segmentIndex}" class="time-label mb-1">Startzeit</label>
-                    <div class="d-flex align-items-center mb-1">
-                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn me-2" data-action="decrease-start">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                        <input type="text" class="form-control time-text-input start-time-text" style="text-align: center;" placeholder="00:00" value="00:00">
-                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn ms-2" data-action="increase-start">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    <input type="range" class="form-range start-time" id="start-time-${segmentIndex}" 
-                        min="0" max="${maxDuration}" step="1" value="0">
+            ${deleteIcon}
+        </div>
+        <div class="segment-controls">
+            <div class="time-input mb-3">
+                <label for="start-time-${segmentIndex}" class="time-label mb-1">Startzeit</label>
+                <div class="d-flex align-items-center mb-1">
+                    <button class="btn btn-sm btn-outline-secondary time-stepper-btn me-2" data-action="decrease-start">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <input type="text" class="form-control time-text-input start-time-text" style="text-align: center;" placeholder="00:00" value="00:00">
+                    <button class="btn btn-sm btn-outline-secondary time-stepper-btn ms-2" data-action="increase-start">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
-                <div class="time-input">
-                    <label for="end-time-${segmentIndex}" class="time-label mb-1">Endzeit</label>
-                    <div class="d-flex align-items-center mb-1">
-                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn me-2" data-action="decrease-end">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                        <input type="text" class="form-control time-text-input end-time-text" style="text-align: center;" placeholder="00:10" value="${formatTime(maxDuration > 10 ? 10 : maxDuration)}">
-                        <button class="btn btn-sm btn-outline-secondary time-stepper-btn ms-2" data-action="increase-end">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    <input type="range" class="form-range end-time" id="end-time-${segmentIndex}" 
-                        min="0" max="${maxDuration}" step="1" value="${maxDuration > 10 ? 10 : maxDuration}">
+                <input type="range" class="form-range start-time" id="start-time-${segmentIndex}" 
+                    min="0" max="${maxDuration}" step="1" value="0">
+            </div>
+            <div class="time-input">
+                <label for="end-time-${segmentIndex}" class="time-label mb-1">Endzeit</label>
+                <div class="d-flex align-items-center mb-1">
+                    <button class="btn btn-sm btn-outline-secondary time-stepper-btn me-2" data-action="decrease-end">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <input type="text" class="form-control time-text-input end-time-text" style="text-align: center;" placeholder="00:10" value="${formatTime(maxDuration > 10 ? 10 : maxDuration)}">
+                    <button class="btn btn-sm btn-outline-secondary time-stepper-btn ms-2" data-action="increase-end">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
+                <input type="range" class="form-range end-time" id="end-time-${segmentIndex}" 
+                    min="0" max="${maxDuration}" step="1" value="${maxDuration > 10 ? 10 : maxDuration}">
             </div>
         </div>
+    </div>
     `;
 
     segmentsContainer.insertAdjacentHTML('beforeend', segmentHtml);
@@ -226,6 +229,18 @@ function addSegment(isFirstElement = false)
             removeSegment(newSegment);
         });
     }
+
+    // Add empty title check on blur event
+    const titleInput = newSegment.querySelector('.segment-title-input');
+    titleInput.addEventListener('blur', function ()
+    {
+        // If the input is empty, reset to default title
+        if (!this.value.trim())
+        {
+            const segmentIndex = parseInt(newSegment.getAttribute('data-index'));
+            this.value = `Segment ${segmentIndex + 1}`;
+        }
+    });
 
     const startTimeInput = newSegment.querySelector('.start-time');
     const endTimeInput = newSegment.querySelector('.end-time');
@@ -357,7 +372,18 @@ function removeSegment(segmentElement)
     segments.forEach((segment, index) =>
     {
         segment.setAttribute('data-index', index);
-        segment.querySelector('h6').innerHTML = `<b>Segment ${index + 1}</b> <span class="badge bg-secondary segment-duration">${segment.querySelector('.segment-duration').textContent}</span>`;
+
+        // Get the existing title input and preserve its content if it's not the default
+        const titleInput = segment.querySelector('.segment-title-input');
+        if (titleInput)
+        {
+            const currentTitle = titleInput.value.trim();
+            // Only update if it's the default pattern "Segment X"
+            if (/^Segment \d+$/.test(currentTitle))
+            {
+                titleInput.value = `Segment ${index + 1}`;
+            }
+        }
     });
     updateExtractButtonState();
 }
@@ -434,12 +460,18 @@ async function extractSegments()
     {
         const startTime = parseInt(segmentElement.querySelector('.start-time').value);
         const endTime = parseInt(segmentElement.querySelector('.end-time').value);
+        const title = segmentElement.querySelector('.segment-title-input').value.trim();
+
         if (isNaN(startTime) || isNaN(endTime) || endTime <= startTime)
         {
             hasErrors = true;
             return;
         }
-        segments.push({ start: startTime, end: endTime });
+        segments.push({
+            start: startTime,
+            end: endTime,
+            title: title
+        });
     });
 
     if (hasErrors)
@@ -505,23 +537,24 @@ function updateSegmentsToLoadingState()
     currentSegments.forEach((segment, index) =>
     {
         const duration = segment.end - segment.start;
+        const segmentTitle = segment.title || `Segment ${index + 1}`;
         const loadingSegmentHtml = `
-            <div class="segment-item segment-loading" data-index="${index}">
-                <div class="spinner-container">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Lädt...</span>
-                    </div>
-                    <p class="spinner-text mb-0">Segment ${index + 1} wird extrahiert...</p>
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            Startzeit: ${formatTime(segment.start)} | 
-                            Endzeit: ${formatTime(segment.end)} | 
-                            Dauer: ${formatDuration(duration)}
-                        </small>
+                <div class="segment-item segment-loading" data-index="${index}">
+                    <div class="spinner-container">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Lädt...</span>
+                        </div>
+                        <p class="spinner-text mb-0">${segmentTitle} wird extrahiert...</p>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Startzeit: ${formatTime(segment.start)} | 
+                                Endzeit: ${formatTime(segment.end)} | 
+                                Dauer: ${formatDuration(duration)}
+                            </small>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
         segmentsContainer.insertAdjacentHTML('beforeend', loadingSegmentHtml);
     });
 
@@ -659,7 +692,7 @@ function updateSegmentToReadyState(index, filePath)
         segmentElement.className = 'segment-item segment-ready';
         segmentElement.innerHTML = `
             <div class="segment-info">
-                <h6 class="mb-1">Segment ${index + 1}</h6>
+                <h6 class="mb-1">${segment.title || `Segment ${index + 1}`}</h6>
                 <p class="mb-0 text-muted">
                     Startzeit: ${formatTime(segment.start)} | 
                     Endzeit: ${formatTime(segment.end)} | 
@@ -902,13 +935,12 @@ function playVideo(index)
         if (!isMerged)
         {
             const segment = currentSegments[index];
-            document.getElementById("videoPlayerModalLabel").textContent =
-                `Audio-Segment ${index + 1}: ${formatTime(segment.start)} - ${formatTime(segment.end)}`;
+            const segmentTitle = segment.title || `Segment ${index + 1}`;
+            document.getElementById("videoPlayerModalLabel").textContent = `${segmentTitle}: ${formatTime(segment.start)} - ${formatTime(segment.end)}`;
         }
         else
         {
-            document.getElementById("videoPlayerModalLabel").textContent =
-                "Zusammenschnitt aller Audio-Segmente";
+            document.getElementById("videoPlayerModalLabel").textContent = "Zusammenschnitt aller Segmente";
         }
 
         videoModalEl.addEventListener("shown.bs.modal", function ()
@@ -935,13 +967,12 @@ function playVideo(index)
         if (!isMerged)
         {
             const segment = currentSegments[index];
-            document.getElementById("videoPlayerModalLabel").textContent =
-                `Segment ${index + 1}: ${formatTime(segment.start)} - ${formatTime(segment.end)}`;
+            const segmentTitle = segment.title || `Segment ${index + 1}`;
+            document.getElementById("videoPlayerModalLabel").textContent = `${segmentTitle}: ${formatTime(segment.start)} - ${formatTime(segment.end)}`;
         }
         else
         {
-            document.getElementById("videoPlayerModalLabel").textContent =
-                "Zusammenschnitt aller Segmente";
+            document.getElementById("videoPlayerModalLabel").textContent = "Zusammenschnitt aller Segmente";
         }
 
         videoModalEl.addEventListener("shown.bs.modal", function ()
