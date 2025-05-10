@@ -17,6 +17,10 @@ Die Anwendung ist besonders nützlich für:
 - **Formatauswahl** - Wähle zwischen Audio und Video sowie verschiedenen Videoqualitäten (144p bis 4K)
 - **Quellendokumentation** - Erstellt automatisch eine JSON-Datei mit umfassenden Metadaten und Segmentinformationen
 
+## Benutzeroberfläche
+
+![UI](readme/ui-example.jpg)
+
 ## Rechtliche Hinweise
 
 Die Nutzung von `VideoBites` muss im Einklang mit den Urheber- und Nutzungsrechten von YouTube und anderen Plattformen stehen. Die Verantwortung für die rechtmäßige Nutzung liegt beim Nutzer.
